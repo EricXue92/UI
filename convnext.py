@@ -11,7 +11,7 @@ class ConvNextGP(nn.Module):
         self.feature_extractor = torchvision.models.convnext_tiny(weights="ConvNeXt_Tiny_Weights.DEFAULT").to(device) # 768
         #self.feature_extractor = torchvision.models.convnext_base(weights="ConvNeXt_Base_Weights.DEFAULT").to(device) # 1024
         for param in self.feature_extractor.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
         # Replace the classifier with nn.Identity to keep the features unchanged
         self.feature_extractor.classifier = nn.Identity()
         self.flatten = nn.Flatten(start_dim=1, end_dim=-1)
@@ -27,9 +27,7 @@ class ConvNextGP(nn.Module):
         features = self.flatten(features)
         if self.classifier is None:
             return features
-
         logits = self.classifier(features)
-
         if isinstance(logits, tuple):
             logits, uncertainty = logits
             prob = F.log_softmax(logits, dim=1)
