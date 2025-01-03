@@ -1,16 +1,47 @@
+
 import torch
+import torch.nn as nn
+import torchvision
 import torch.nn.functional as F
 
 from sngp_wrapper.covert_utils import replace_layer_with_gaussian, convert_to_sn_my
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 num_gpus = torch.cuda.device_count()
-print(f"Number of available GPUs: {num_gpus}")
+
+class ConvNextGP(nn.Module):
+    def __init__(self, num_classes: int):
+        super(ConvNextGP, self).__init__()
+        self.model_ft = torchvision.models.convnext_tiny(weights="ConvNeXt_Tiny_Weights.DEFAULT").to(device)
+        # Freeze the feature extraction layers
+        # for param in model.features.parameters():
+        #     param.requires_grad = False
+        self.num_ftrs = self.model_ft.classifier[2].in_features
+        self.model_ft.classifier = nn.Sequential(
+            nn.Linear(self.num_ftrs, 512),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(256, num_classes)
+        ).to(device)
+
+    def forward(self, x, **kwargs):
+        # Forward pass through the feature extractor
+        x = self.model_ft.features(x)
+        # Global average pooling
+        x = self.model_ft.avgpool(x)
+        # Flatten the tensor
+        x = torch.flatten(x, 1)
+        # Pass through the custom classifier
+        x = self.model_ft.classifier(x)
+        return x
 
 
-def build_model(args, num_classes, train_dataset):
+def build_model(args, num_classes):
     if args.sngp:
-        model = SimpleMLP(num_classes=num_classes)
+        model = ConvNextGP(num_classes=num_classes)
         GP_KWARGS = {
             'num_inducing': 256,
             'gp_scale': 1.0,
@@ -26,49 +57,14 @@ def build_model(args, num_classes, train_dataset):
             'gp_output_imagenet_initializer': True,
             'num_classes': num_classes,
         }
-        if args.spectral_normalization:
-            model = convert_to_sn_my(model, args.spec_norm_replace_list, args.coeff)
-
+        model = convert_to_sn_my(model, args.spec_norm_replace_list, args.coeff)
         replace_layer_with_gaussian(container=model, signature="classifier", **GP_KWARGS)
-        if args.conformal_training:
-            loss_fn = ConformalTrainingLoss(alpha=args.alpha, beta=args.beta, temperature=args.temperature, args=args)
-        else:
-            loss_fn = F.cross_entropy
-        likelihood = None
-
-    elif args.snipgp:
-        feature_extractor = SimpleMLP(num_classes=None)
-        if args.spectral_normalization:
-            feature_extractor = convert_to_sn_my(feature_extractor, args.spec_norm_replace_list, args.coeff)
-        initial_inducing_points, initial_lengthscale = dkl.initial_values(train_dataset, feature_extractor, args.n_inducing_points)
-        gp = dkl.GP(
-            num_outputs=num_classes,
-            initial_lengthscale=initial_lengthscale,
-            initial_inducing_points=initial_inducing_points,
-            kernel=args.kernel
-        )
-        model = dkl.DKL(feature_extractor, gp)
-        likelihood = SoftmaxLikelihood(num_features=num_classes, num_classes=num_classes, mixing_weights=False)
-        likelihood = likelihood.cuda()
-        elbo_fn = VariationalELBO(likelihood, gp, num_data=len(train_dataset))
-        loss_fn = lambda x, y: -elbo_fn(x, y)
-
     elif args.snn:
-        model = SimpleMLP(num_classes=num_classes)
-        if args.spectral_normalization:
-            model = convert_to_sn_my(model, args.spec_norm_replace_list, args.coeff)
-
-        if args.conformal_training:
-            loss_fn = ConformalTrainingLoss(alpha=args.alpha, beta=args.beta, temperature=args.temperature, args=args)
-
-        else:
-            loss_fn = F.cross_entropy
-        likelihood = None
-
+        model = ConvNextGP(num_classes=num_classes)
     else:
         raise ValueError("Invalid model type")
-
     model = model.to(device)
-    return model, likelihood, loss_fn
+    return model
+
 
 

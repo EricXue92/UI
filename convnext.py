@@ -8,13 +8,16 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class ConvNextGP(nn.Module):
     def __init__(self, num_classes: int):
         super(ConvNextGP, self).__init__()
-        self.feature_extractor = torchvision.models.convnext_tiny(weights="ConvNeXt_Tiny_Weights.DEFAULT").to(device) # 768
+        self.model_ft = torchvision.models.convnext_tiny(weights="ConvNeXt_Tiny_Weights.DEFAULT").to(device) # 768
         #self.feature_extractor = torchvision.models.convnext_base(weights="ConvNeXt_Base_Weights.DEFAULT").to(device) # 1024
         for param in self.feature_extractor.parameters():
             param.requires_grad = True
+
+        self.num_ftrs = self.model_ft.fc.in_features
         # Replace the classifier with nn.Identity to keep the features unchanged
-        self.feature_extractor.classifier = nn.Identity()
-        self.flatten = nn.Flatten(start_dim=1, end_dim=-1)
+        # self.feature_extractor.classifier = nn.Identity()
+        # self.flatten = nn.Flatten(start_dim=1, end_dim=-1)
+
         self.num_classes = num_classes
 
         if self.num_classes is not None:
@@ -42,6 +45,7 @@ class EfficientNetGP(nn.Module):
         # auto_transform = weights.transforms()
         self.feature_extractor = torchvision.models.efficientnet_b0(weights=weights).to(device)
         self.flatten = nn.Flatten()
+
         # Replace the classifier with nn.Identity to keep the features unchanged
         self.feature_extractor.classifier = nn.Identity()
 
