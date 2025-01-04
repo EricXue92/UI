@@ -4,10 +4,10 @@
 # imports specific classes and functions from submodules 
 # to make them easily accessible when the package is imported
 
-from due.layers.spectral_batchnorm import (
+from layers.spectral_batchnorm import (
     SpectralBatchNorm1d,
     SpectralBatchNorm2d,
     SpectralBatchNorm3d,
 )
-from due.layers.spectral_norm_conv import spectral_norm_conv
-from due.layers.spectral_norm_fc import spectral_norm_fc
+from layers.spectral_norm_conv import spectral_norm_conv
+from layers.spectral_norm_fc import spectral_norm_fc
