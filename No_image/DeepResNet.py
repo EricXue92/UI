@@ -11,12 +11,12 @@ class DeepResNet(nn.Module):
         self.num_classes = num_classes
         self.num_hidden = num_hidden
         self.dropout_rate = dropout_rate
+
         self.classifier_kwargs = classifier_kwargs
         self.input_layer = nn.Linear(input_dim, num_hidden)
         # Input layer (non-trainable)
         # self.input_layer.weight.requires_grad = False
         # self.input_layer.bias.requires_grad = False
-
         self.residual_layers = nn.ModuleList([self.make_dense_layer() for _ in range(num_layers)])
         if self.num_classes is not None:
             self.classifier = self.make_output_layer(num_classes)
@@ -28,19 +28,17 @@ class DeepResNet(nn.Module):
         for i in range(self.num_layers):
             resid = self.activation_function(self.residual_layers[i](hidden))
             resid = F.dropout(resid, p=self.dropout_rate, training=self.training)
-            hidden = hidden + resid  #  # Residual connection
-
-        out_put = self.classifier(hidden, **kwargs)
+            hidden = hidden + resid  # Residual connection
+        logits = self.classifier(hidden, **kwargs)
         if return_hidden:
-            return out_put, hidden
+            return logits, hidden
         else:
-            return out_put
+            return logits
+
     def make_dense_layer(self):
         return nn.Linear(self.num_hidden, self.num_hidden)
-
     def make_output_layer(self, num_outputs):
         return nn.Linear(self.num_hidden, num_outputs)
-
     def get_activation_function(self, activation):
         activations = {
             'relu': nn.ReLU(),
@@ -52,34 +50,86 @@ class DeepResNet(nn.Module):
             raise ValueError(f"Unsupported activation function: {activation}")
         return activations[activation]
 
-# 1. Define input dimension and batch size
-input_dimension = 10  # Example input dimension
-batch_size = 32      # Example batch size
-# 2. Generate random input data using torch
-input_data = torch.randn(batch_size, input_dimension)
-print("Input data shape:", input_data.shape)
-# 3. Instantiate the model
-model = DeepResNet(input_dim=input_dimension)
-print("Model architecture:")
-print(model)
-# 4. Pass the input data through the model
-output = model(input_data, kwargs={} )
-print("Output shape:", output.shape)
-print("Sample output values (first 5):\n", output[:2])
-# 5. Test with different configurations (optional)
-# Example with multiple classes
-model_multi_class = DeepResNet(input_dim=input_dimension, num_classes=5)
-output_multi_class = model_multi_class(input_data,  kwargs={} )
-print("\nOutput shape (multi-class):", output_multi_class.shape)
-print("Sample output values (multi-class, first 5):\n", output_multi_class[:5])
-# Example with return_hidden=True
-output_with_hidden, hidden_state = model(input_data, kwargs={}, return_hidden=True)
-print("\nOutput shape (with hidden):", output_with_hidden.shape)
-print("Hidden state shape:", hidden_state.shape)
 
-# Example with a different activation function
-model_tanh = DeepResNet(input_dim=input_dimension, activation="tanh")
-output_tanh = model_tanh(input_data,kwargs={})
-print("\nOutput shape (tanh activation):", output_tanh.shape)
+def mc_dropout(model, x, kwargs, n_samples=5, return_hidden=False):
+    predictions, hidden_states = [], []
+    model.train()  # Ensure dropout is active
+    with torch.no_grad():
+        for _ in range(n_samples):
+            if return_hidden:
+                output, hidden = model(x, kwargs, return_hidden=True)
+                predictions.append(output)
+                hidden_states.append(hidden)
+            else:
+                output = model(x, kwargs)
+                predictions.append(output)
+    predictions = torch.stack(predictions, dim=0)  # Shape: (n_samples, batch_size, num_classes)
+    mean_prediction = predictions.mean(dim=0)  # Mean across MC samples
+    std_prediction = predictions.std(dim=0)  # Standard deviation across MC samples
+    if return_hidden:
+        hidden_states = torch.stack(hidden_states, dim=0)  # Shape: (n_samples, batch_size, hidden_dim)
+        return mean_prediction, std_prediction, hidden_states
+    else:
+        return mean_prediction, std_prediction
 
-print("\nData generation and model forward pass successful!")
+def deep_ensemble_inference(models, x, kwargs, return_hidden=False):
+    predictions, hiddens = [], []
+    with torch.no_grad():
+        for model in models:
+            model.eval()  # Set each model to evaluation mode
+            if return_hidden:
+                output, hidden = model(x, kwargs, return_hidden=True)
+                hiddens.append(hidden.unsqueeze(0))
+            else:
+                output = model(x, kwargs, return_hidden=return_hidden)
+            predictions.append(output.unsqueeze(0))
+
+    predictions = torch.cat(predictions, dim=0)  # Shape: (n_models, batch_size, num_classes)
+    mean_prediction = predictions.mean(dim=0)  # Mean across ensemble models
+    std_prediction = predictions.std(dim=0)  # Standard deviation across ensemble models
+
+    if return_hidden:
+        hiddens = torch.cat(hiddens, dim=0)  # Shape: (n_models, batch_size, hidden_dim)
+        hiddens = hiddens.mean(dim=0)  # Average hidden states across ensemble models
+        return mean_prediction, std_prediction, hiddens
+    else:
+        return mean_prediction, std_prediction
+
+
+# # Example usage:
+# models = [ DeepResNet(input_dim=128, num_layers=3, num_hidden=128, activation="relu", num_classes=3, dropout_rate=0.1)
+#            for _ in range(5)]
+# input_data = torch.randn(5, 128)  # Example input
+# mean_pred, uncertainty = deep_ensemble_inference(models, input_data, kwargs={})
+#
+# print("Mean predictions shape:", mean_pred)
+# print("Mean uncertainty:", uncertainty)
+# Example usage:
+
+models = [DeepResNet(input_dim=128, num_layers=3, num_hidden=128, activation="relu", num_classes=3, dropout_rate=0.1)
+          for _ in range(5)]
+
+input_data = torch.randn(5, 128)  # Example input
+mean_pred, uncertainty = deep_ensemble_inference(models, input_data, kwargs={})
+print("Mean predictions shape:", mean_pred.shape)
+print("Uncertainty shape:", uncertainty.shape)
+
+
+# Create an instance of the DeepResNet model
+input_dim = 128
+num_classes = 3
+model = DeepResNet(input_dim=input_dim, num_layers=3, num_hidden=128, activation="relu", num_classes=num_classes, dropout_rate=0.1)
+
+# Generate some synthetic input data
+batch_size = 5
+input_data = torch.randn(batch_size, input_dim)  # Example input
+
+# Define any additional arguments required by the classifier (if any)
+kwargs = {}
+
+# Perform MC Dropout inference
+n_samples = 5
+mean_pred, uncertainty = mc_dropout(model, input_data, kwargs, n_samples=n_samples)
+# Print the results
+print("Mean Predictions:\n", mean_pred)
+print("Uncertainty (Standard Deviation):\n", uncertainty)

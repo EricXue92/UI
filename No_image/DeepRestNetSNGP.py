@@ -66,6 +66,7 @@ print(sngp_model)
 
 
 sngp_model.classifier.update_covariance_matrix()
+
 # 4. Pass the input data through the model
 output, hidden= sngp_model(input_data, kwargs={"update_precision_matrix": False, "return_covariance": True}, return_hidden=True)
 y_pred, cov = output
@@ -78,31 +79,6 @@ print("Uncertainty:", uncertainty)
 
 
 
-def hidden_helper(x, model, return_hidden=True, chunk_size=100):
-    batches = int(np.ceil(x.shape[0] / chunk_size))
-    num_hidden = model.num_hidden
-    classes = model.classifier.out_features
 
-    hidden = torch.zeros((x.shape[0], num_hidden))
-    logits = torch.zeros((x.shape[0], classes))
-
-    for i in range(batches):
-        s = i * chunk_size
-        t = min((i + 1) * chunk_size, x.shape[0])
-
-        input_chunk = x[s:t, :]
-
-        if return_hidden:
-            logits_temp, hidden_temp = model(input_chunk, return_hidden=True)
-            hidden[s:t, :] = hidden_temp
-            logits[s:t, :] = logits_temp
-        else:
-            logits_temp = model(input_chunk)
-            logits[s:t, :] = logits_temp
-
-    if return_hidden:
-        return hidden, logits
-    else:
-        return logits
 
 
