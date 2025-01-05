@@ -73,8 +73,8 @@ uncertainty = torch.diagonal(cov, 0)
 
 print("Predictions shape:", y_pred.shape)
 print("predictions:", y_pred)
-print("covariance shape:", cov.shape)
-print("Covariance:", uncertainty)
+print("Covariance shape:", cov.shape)
+print("Uncertainty:", uncertainty)
 
 
 
