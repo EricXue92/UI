@@ -2,22 +2,34 @@ import torch
 import torch.nn as nn
 import torchvision
 from sngp_wrapper.covert_utils import replace_layer_with_gaussian, convert_to_sn_my
+import torch.nn.functional as F
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ConvNextGP(nn.Module):
     def __init__(self, num_classes: int):
         super(ConvNextGP, self).__init__()
         feature_extractor = torchvision.models.convnext_tiny(weights="ConvNeXt_Tiny_Weights.DEFAULT")
+        # remove the classifier layer
         feature_extractor.classifier = nn.Identity()
         self.feature_extractor = feature_extractor
         self.flatten = nn.Flatten(start_dim=1, end_dim=-1)
         self.classifier = nn.Linear(768, num_classes)
-    def forward(self, x, **kwargs):
+
+    def forward(self, x, return_hidden=False, **kwargs):
         features = self.flatten(self.feature_extractor(x))
-        output = self.classifier(features, **kwargs)
-        return output
+        logits = self.classifier(features, **kwargs)
+        if return_hidden:
+            return logits, features
+        else:
+            return logits
 
 def build_model(num_classes):
+    model = ConvNextGP(num_classes=num_classes)
+    model = model.to(device)
+    return model
+
+def build_sngp_model(num_classes):
     model = ConvNextGP(num_classes=num_classes)
     GP_KWARGS = {
         'num_inducing': 1024,
@@ -39,32 +51,56 @@ def build_model(num_classes):
     replace_layer_with_gaussian(container=model, signature="classifier", **GP_KWARGS)
     return model
 
-def main():
-    num_classes = 10
-    kwargs = {"return_random_features": False, "return_covariance":False,
-              "update_precision_matrix": False, "update_covariance_matrix": False }
 
-    model = build_model(num_classes).to(device)
-    ind_data = torch.randn(10, 3, 224, 224).to(device)
-    ood_data = (torch.randn(10, 3, 224, 224) + 10).to(device)
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        self.fc1 = nn.Linear(64 * 3 * 3, 64)
+        self.fc2 = nn.Linear(64, 10)
+        self.relu = nn.ReLU()
 
-    for _ in range(10):
-        model(ind_data, **{"update_precision_matrix": True})  # we remember the in-domain data
-
-    model.classifier.update_covariance_matrix()
-
-    ind_output = model(ind_data, **{"update_precision_matrix": False, "return_covariance": True, })
-    ood_output = model(ood_data, **{"update_precision_matrix": False, "return_covariance": True, })
-
-    ind_prob, ind_cov = ind_output
-    ood_prob, ood_cov = ood_output
-
-    ind_uncertainty = torch.diagonal(ind_cov, 0)
-    ood_uncertainty = torch.diagonal(ood_cov, 0)
-
-    print("ind_uncertainty", ind_uncertainty, "ind mean", torch.mean(ind_uncertainty))
-    print("ood_uncertainty", ood_uncertainty, "ood mean", torch.mean(ood_uncertainty))
+    def forward(self, x):
+        x = self.pool(self.relu(self.conv1(x)))
+        x = self.pool(self.relu(self.conv2(x)))
+        x = self.pool(self.relu(self.conv3(x)))
+        x = x.view(-1, 64 * 3 * 3)
+        x = self.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
 
 
-if __name__ == "__main__":
-    main()
+
+
+# def main():
+#     num_classes = 3
+#     kwargs = {"return_random_features": False, "return_covariance":False,
+#               "update_precision_matrix": False, "update_covariance_matrix": False }
+#
+#     model = build_model(num_classes).to(device)
+#     sngp_model = build_sngp_model(num_classes).to(device)
+#     ind_data = torch.randn(10, 3, 224, 224).to(device)
+#
+#     logits, features = model(ind_data, return_hidden=True)
+#     print("logits shape", logits.shape, "features shape", features.shape)
+#
+#
+#     for _ in range(10):
+#         sngp_model(ind_data, **{"update_precision_matrix": True})  # we remember the in-domain data
+#
+#     sngp_model.classifier.update_covariance_matrix()
+#
+#     ind_output =sngp_model(ind_data, **{"update_precision_matrix": False, "return_covariance": True})
+#
+#     ind_prob, ind_cov = ind_output
+#
+#     ind_uncertainty = torch.diagonal(ind_cov, 0)
+#
+#     print("ind_uncertainty", ind_uncertainty, "ind mean", torch.mean(ind_uncertainty))
+#
+#
+# if __name__ == "__main__":
+#     main()

@@ -1,67 +1,119 @@
 import os
-import requests
-import zipfile
-from pathlib import Path
 
+import torch
+import torchvision
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-
+from torch.utils.data import Dataset
+import scipy
+import numpy as np
 NUM_WORKERS = os.cpu_count()
 
-# Setup path to data folder
-data_path = Path("data/")
-image_path = data_path / "pizza_steak_sushi"
+class ShiftDataset(Dataset):
+    def __init__(self, shifting=True, rotate_degs=None, roll_pixels=None, dataset=None, transform=None):
+        super(ShiftDataset, self).__init__()
+        self.shifting = shifting
+        self.rotate_degs = rotate_degs
+        self.roll_pixels = roll_pixels
+        self.dataset = dataset
+        self.transform = transform
 
-# If the image folder doesn't exist, download it and prepare it...
-if image_path.is_dir():
-    print(f"{image_path} directory exists.")
-else:
-    print(f"Did not find {image_path} directory, creating one...")
-    image_path.mkdir(parents=True, exist_ok=True)
+    def __getitem__(self, index):
+        image, label = self.dataset[index]
+        if self.transform:
+            image = self.transform(image)
+        # Apply augmentations if training
+        if self.shifting:
+            if self.rotate_degs:
+                image = scipy.ndimage.rotate(image.numpy(), self.rotate_degs, axes=(1, 2), reshape=False)
+                image = torch.from_numpy(image)
+            if self.roll_pixels:
+                image = np.roll(image.numpy(), self.roll_pixels, axis=1)
+                image = torch.from_numpy(image)
+        # return {"data": image, "label": label}
+        return image, label
 
-# Download pizza, steak, sushi data
-with open(data_path / "pizza_steak_sushi.zip", "wb") as f:
-    request = requests.get("https://github.com/mrdbourke/pytorch-deep-learning/raw/main/data/pizza_steak_sushi.zip")
-    print("Downloading pizza, steak, sushi data...")
-    f.write(request.content)
+    def __len__(self):
+        return len(self.dataset)
 
-# Unzip pizza, steak, sushi data
-with zipfile.ZipFile(data_path / "pizza_steak_sushi.zip", "r") as zip_ref:
-    print("Unzipping pizza, steak, sushi data...")
-    zip_ref.extractall(image_path)
+def get_transform(mean, std):
+    return transforms.Compose([
+        # transforms.Resize((224, 224)),  # Resize MNIST images from 28x28 to 224x224
+        # transforms.Grayscale(num_output_channels=3),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std)
+    ])
 
-# Remove zip file
-os.remove(data_path / "pizza_steak_sushi.zip")
+def load_dataset(dataset_class, train=False, transform=None):
+    return dataset_class(root='./data', train=train, download=True, transform=transform)
 
+# Get train and test MNIST datasets
+def get_train_test_mnist():
+    transform = get_transform((0.1307,), (0.3081,))
+    train_mnist = load_dataset(torchvision.datasets.MNIST, train=True, transform=transform)
+    test_mnist = load_dataset(torchvision.datasets.MNIST, train=False, transform=transform)
+    return train_mnist, test_mnist
 
-def create_dataloaders(
-    train_dir: str,
-    test_dir: str,
-    transform: transforms.Compose,
-    batch_size: int,
-    num_workers: int=NUM_WORKERS
-):
-    # Use ImageFolder to create dataset(s)
-    train_data = datasets.ImageFolder(train_dir, transform=transform)
-    test_data = datasets.ImageFolder(test_dir, transform=transform)
+# Get shifted MNIST with rotation and roll augmentations
+def get_shifted_mnist(rotate_degs=2, roll_pixels=10):
+    transform = get_transform((0.1307,), (0.3081,))
+    mnist_data = load_dataset(torchvision.datasets.MNIST, train=False, transform=None)
+    return ShiftDataset(shifting=True, rotate_degs=rotate_degs, roll_pixels=roll_pixels, dataset=mnist_data, transform=transform)
 
-    # Get class names
-    class_names = train_data.classes
+# Get FashionMNIST as OOD dataset with same MNIST transformation
+def get_ood_mnist():
+    transform = get_transform((0.1307,), (0.3081,))
+    return load_dataset(torchvision.datasets.FashionMNIST, train=False, transform=transform)
 
-    # Turn images into data loaders
-    train_dataloader = DataLoader(
-        train_data,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=num_workers,
-        pin_memory=True,
-    )
-    test_dataloader = DataLoader(
-        test_data,
-        batch_size=batch_size,
-        shuffle=False,  # don't need to shuffle test data
-        num_workers=num_workers,
-        pin_memory=True,
-    )
+# def get_mnist_dataloaders(train_batch_size=64, test_batch_size=1000):
+#     train_mnist = get_mnist(train=True)
+#     test_mnist = get_mnist(train=False)
+#     train_loader = DataLoader(train_mnist, batch_size=train_batch_size, shuffle=True)
+#     test_loader = DataLoader(test_mnist, batch_size=test_batch_size, shuffle=False)
+#     return train_loader, test_loader
 
-    return train_dataloader, test_dataloader, class_names
+# def create_dataloaders(
+#     train_dir: str, test_dir: str,
+#     transform: transforms.Compose,
+#     batch_size: int,
+#     num_workers: int=NUM_WORKERS
+# ):
+#     # Use ImageFolder to create dataset(s)
+#     train_data = datasets.ImageFolder(train_dir, transform=transform)
+#     test_data = datasets.ImageFolder(test_dir, transform=transform)
+#
+#     # Get class names
+#     class_names = train_data.classes
+#
+#     # Turn images into data loaders
+#     train_dataloader = DataLoader(
+#         train_data,
+#         batch_size=batch_size,
+#         shuffle=True,
+#         num_workers=num_workers,
+#         pin_memory=True,
+#     )
+#     test_dataloader = DataLoader(
+#         test_data,
+#         batch_size=batch_size,
+#         shuffle=False,  # don't need to shuffle test data
+#         num_workers=num_workers,
+#         pin_memory=True,
+#     )
+#
+#     return train_dataloader, test_dataloader, class_names
+
+#
+
+if __name__ == "__main__":
+    rotate_degs_list = [k for k in range(15, 181, 15)]
+    roll_pixels_list = [k for k in range(2, 28, 2)]
+    # Get shifted MNIST with rotation and roll augmentations
+    dataset = get_shifted_mnist(rotate_degs=rotate_degs_list[0], roll_pixels=roll_pixels_list[2])
+    print(dataset[8]["data"].shape)
+    # plot the data
+    import matplotlib.pyplot as plt
+    img = dataset[8]["data"].squeeze()
+    plt.imshow(img)
+    plt.tight_layout()
+    plt.show()
