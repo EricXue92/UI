@@ -1,18 +1,16 @@
-
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
 class DeepResNet(nn.Module):
     def __init__(self, input_dim, num_layers=3, num_hidden=128,
-                 activation="relu", num_classes=10, dropout_rate=0.1, **classifier_kwargs):
+                 activation="relu", num_classes=10, dropout_rate=0.1):
         super().__init__()
         self.num_layers = num_layers
         self.num_classes = num_classes
         self.num_hidden = num_hidden
         self.dropout_rate = dropout_rate
 
-        self.classifier_kwargs = classifier_kwargs
         self.input_layer = nn.Linear(input_dim, num_hidden)
         # Input layer (non-trainable)
         # self.input_layer.weight.requires_grad = False
@@ -22,7 +20,7 @@ class DeepResNet(nn.Module):
             self.classifier = self.make_output_layer(num_classes)
         self.activation_function = self.get_activation_function(activation)
 
-    def forward(self, x, kwargs, return_hidden=False):
+    def forward(self, x,  return_hidden=False, **kwargs):
         hidden = self.input_layer(x)
         hidden = self.activation_function(hidden)
         for i in range(self.num_layers):
@@ -51,17 +49,17 @@ class DeepResNet(nn.Module):
         return activations[activation]
 
 
-def mc_dropout(model, x, kwargs, n_samples=5, return_hidden=False):
+def mc_dropout(model, x,  n_samples=5, return_hidden=False, **kwargs):
     predictions, hidden_states = [], []
     model.train()  # Ensure dropout is active
     with torch.no_grad():
         for _ in range(n_samples):
             if return_hidden:
-                output, hidden = model(x, kwargs, return_hidden=True)
+                output, hidden = model(x, return_hidden=True, **kwargs)
                 predictions.append(output)
                 hidden_states.append(hidden)
             else:
-                output = model(x, kwargs)
+                output = model(x, **kwargs)
                 predictions.append(output)
     predictions = torch.stack(predictions, dim=0)  # Shape: (n_samples, batch_size, num_classes)
     mean_prediction = predictions.mean(dim=0)  # Mean across MC samples
@@ -72,16 +70,16 @@ def mc_dropout(model, x, kwargs, n_samples=5, return_hidden=False):
     else:
         return mean_prediction, std_prediction
 
-def deep_ensemble_inference(models, x, kwargs, return_hidden=False):
+def deep_ensemble_inference(models, x, return_hidden=False, **kwargs):
     predictions, hiddens = [], []
     with torch.no_grad():
         for model in models:
             model.eval()  # Set each model to evaluation mode
             if return_hidden:
-                output, hidden = model(x, kwargs, return_hidden=True)
+                output, hidden = model(x, return_hidden=True, **kwargs)
                 hiddens.append(hidden.unsqueeze(0))
             else:
-                output = model(x, kwargs, return_hidden=return_hidden)
+                output = model(x, return_hidden=return_hidden, **kwargs)
             predictions.append(output.unsqueeze(0))
 
     predictions = torch.cat(predictions, dim=0)  # Shape: (n_models, batch_size, num_classes)
@@ -110,7 +108,8 @@ models = [DeepResNet(input_dim=128, num_layers=3, num_hidden=128, activation="re
           for _ in range(5)]
 
 input_data = torch.randn(5, 128)  # Example input
-mean_pred, uncertainty = deep_ensemble_inference(models, input_data, kwargs={})
+kwargs={}
+mean_pred, uncertainty = deep_ensemble_inference(models, input_data, **kwargs)
 print("Mean predictions shape:", mean_pred.shape)
 print("Uncertainty shape:", uncertainty.shape)
 
@@ -129,7 +128,7 @@ kwargs = {}
 
 # Perform MC Dropout inference
 n_samples = 5
-mean_pred, uncertainty = mc_dropout(model, input_data, kwargs, n_samples=n_samples)
+mean_pred, uncertainty = mc_dropout(model, input_data,  n_samples=n_samples, **kwargs)
 # Print the results
 print("Mean Predictions:\n", mean_pred)
 print("Uncertainty (Standard Deviation):\n", uncertainty)

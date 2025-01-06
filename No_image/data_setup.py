@@ -5,25 +5,28 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, TensorDataset
 
-def create_dataloaders(batch_size=64, seed=12, frac=0.1):
+from tableshift import get_dataset
+dataset_name = "diabetes_readmission"
+dset = get_dataset(dataset_name)
+print(dset)
 
+def create_dataloaders(train_filepath, shift_filepath, ood_filepath):
+
+    batch_size, seed, frac = 128, 12, 0.1
     torch.manual_seed(seed)
     np.random.seed(seed)
 
     # Load and sample the training data
-    X_train = pd.read_csv('Diabetes-Data-Shift/X_train.csv').sample(frac=frac, random_state=2)
-    y_train = pd.read_csv('Diabetes-Data-Shift/y_train.csv').sample(frac=frac, random_state=2)
+    X_train = pd.read_csv(train_filepath)
+    y_train = pd.read_csv(train_filepath)
 
     # Train-validation split
+    X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=0.2, random_state=seed)
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.1, random_state=seed)
 
-    # Load and sample the test data
-    X_test = pd.read_csv('Diabetes-Data-Shift/X_id_test.csv').sample(frac=frac, random_state=1)
-    y_test = pd.read_csv('Diabetes-Data-Shift/y_id_test.csv').sample(frac=frac, random_state=1)
-
     # Load and sample the shifted test data
-    X_shift = pd.read_csv('Diabetes-Data-Shift/X_ood_test.csv').sample(frac=frac, random_state=3)
-    y_shift = pd.read_csv('Diabetes-Data-Shift/y_ood_test.csv').sample(frac=frac, random_state=3)
+    X_shift = pd.read_csv('Diabetes-Data-Shift/X_ood_test.csv').sample(frac=frac, random_state=seed)
+    y_shift = pd.read_csv('Diabetes-Data-Shift/y_ood_test.csv').sample(frac=frac, random_state=seed)
 
     # Add Gaussian noise to the shifted test data
     shift_noises = np.random.normal(loc=0.0, scale=0.3, size=X_shift.shape)
