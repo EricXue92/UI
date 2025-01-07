@@ -55,7 +55,7 @@ def get_train_test_mnist():
     return train_mnist, test_mnist
 
 # Get shifted MNIST with rotation and roll augmentations
-def get_shifted_mnist(rotate_degs=2, roll_pixels=10):
+def get_shifted_mnist(rotate_degs=2, roll_pixels=2):
     transform = get_transform((0.1307,), (0.3081,))
     mnist_data = load_dataset(torchvision.datasets.MNIST, train=False, transform=None)
     return ShiftDataset(shifting=True, rotate_degs=rotate_degs, roll_pixels=roll_pixels, dataset=mnist_data, transform=transform)
