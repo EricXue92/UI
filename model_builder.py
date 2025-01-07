@@ -3,9 +3,7 @@ import torch.nn as nn
 import torchvision
 from sngp_wrapper.covert_utils import replace_layer_with_gaussian, convert_to_sn_my
 import torch.nn.functional as F
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 # class ConvNextGP(nn.Module):
 #     def __init__(self, num_classes: int):
 #         super(ConvNextGP, self).__init__()
@@ -78,7 +76,7 @@ def Build_MNISTClassifier(num_classes):
     model = model.to(device)
     return model
 
-def Build_SNGP_MNISTClassifier(num_classes):
+def Build_SNGP_MNISTClassifier(num_classes=10, coeff=3.):
     model = MNISTClassifier(num_classes=num_classes)
     GP_KWARGS = {
         'num_inducing': 1024,
@@ -95,7 +93,7 @@ def Build_SNGP_MNISTClassifier(num_classes):
         'gp_output_imagenet_initializer': True,
         'num_classes': num_classes,
     }
-    spec_norm_replace_list, coeff = ["Linear", "Conv2D"], 3.
+    spec_norm_replace_list = ["Linear", "Conv2D"]
     model = convert_to_sn_my(model, spec_norm_replace_list, coeff)
     replace_layer_with_gaussian(container=model, signature="classifier", **GP_KWARGS)
     return model

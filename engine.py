@@ -1,6 +1,7 @@
 import torch
 from tqdm.auto import tqdm
 from typing import Dict, List, Tuple
+import time
 
 def train_step(model, dataloader, loss_fn, optimizer, device):
     model.train()
@@ -40,7 +41,8 @@ def test_step(model, dataloader, loss_fn, device):
     return test_loss, test_acc
 
 def train(model, train_dataloader, test_dataloader, optimizer, loss_fn, epochs, device):
-    results = {"train_loss": [], "train_acc": [], "test_loss": [],  "test_acc": [] }
+    start_time = time.time()
+    results = {"train_loss": [], "train_acc": [], "test_loss": [],  "test_acc": [], "time":[] }
     # Loop through training and testing steps for a number of epochs
     for epoch in tqdm(range(epochs)):
         train_loss, train_acc = train_step(model=model, dataloader=train_dataloader, loss_fn=loss_fn, optimizer=optimizer, device=device)
@@ -54,6 +56,10 @@ def train(model, train_dataloader, test_dataloader, optimizer, loss_fn, epochs, 
         results["train_acc"].append(train_acc)
         results["test_loss"].append(test_loss)
         results["test_acc"].append(test_acc)
+    end_time = time.time()
+    training_time = end_time - start_time
+    results["time"] = training_time
+    print(f"Training time: {training_time:.2f} seconds")
     return results
 
 

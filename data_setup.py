@@ -63,46 +63,6 @@ def get_ood_mnist():
     transform = get_transform((0.1307,), (0.3081,))
     return load_dataset(torchvision.datasets.FashionMNIST, train=False, transform=transform)
 
-# def get_mnist_dataloaders(train_batch_size=64, test_batch_size=1000):
-#     train_mnist = get_mnist(train=True)
-#     test_mnist = get_mnist(train=False)
-#     train_loader = DataLoader(train_mnist, batch_size=train_batch_size, shuffle=True)
-#     test_loader = DataLoader(test_mnist, batch_size=test_batch_size, shuffle=False)
-#     return train_loader, test_loader
-
-# def create_dataloaders(
-#     train_dir: str, test_dir: str,
-#     transform: transforms.Compose,
-#     batch_size: int,
-#     num_workers: int=NUM_WORKERS
-# ):
-#     # Use ImageFolder to create dataset(s)
-#     train_data = datasets.ImageFolder(train_dir, transform=transform)
-#     test_data = datasets.ImageFolder(test_dir, transform=transform)
-#
-#     # Get class names
-#     class_names = train_data.classes
-#
-#     # Turn images into data loaders
-#     train_dataloader = DataLoader(
-#         train_data,
-#         batch_size=batch_size,
-#         shuffle=True,
-#         num_workers=num_workers,
-#         pin_memory=True,
-#     )
-#     test_dataloader = DataLoader(
-#         test_data,
-#         batch_size=batch_size,
-#         shuffle=False,  # don't need to shuffle test data
-#         num_workers=num_workers,
-#         pin_memory=True,
-#     )
-#
-#     return train_dataloader, test_dataloader, class_names
-
-#
-
 if __name__ == "__main__":
     rotate_degs_list = [k for k in range(15, 181, 15)]
     roll_pixels_list = [k for k in range(2, 28, 2)]
