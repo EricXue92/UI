@@ -56,12 +56,16 @@ class MNISTClassifier(nn.Module):
         self.fc1 = nn.Linear(64 * 7 * 7, 128)
         self.relu = nn.ReLU()
         self.classifier = nn.Linear(128, num_classes)
+        self.dropout_rate = 0.1
 
     def forward(self, x, return_hidden=False, **kwargs):
         x = self.pool(self.relu(self.conv1(x)))
+        x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.pool(self.relu(self.conv2(x)))
+        x = F.dropout(x, p=self.dropout_rate, training=self.training)
         x = x.view(-1, 64 * 7 * 7)
         x = self.relu(self.fc1(x))
+        x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
         logits = self.classifier(x, **kwargs)
         if return_hidden:

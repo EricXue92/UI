@@ -38,8 +38,6 @@ class ShiftDataset(Dataset):
 
 def get_transform(mean, std):
     return transforms.Compose([
-        # transforms.Resize((224, 224)),  # Resize MNIST images from 28x28 to 224x224
-        # transforms.Grayscale(num_output_channels=3),
         transforms.ToTensor(),
         transforms.Normalize(mean, std)
     ])

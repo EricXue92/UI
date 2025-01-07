@@ -19,7 +19,7 @@ def train_step(model, dataloader, loss_fn, optimizer, device):
         train_acc += (y_pred_class == y).sum().item() / len(y_pred)
     train_loss = train_loss / len(dataloader)
     train_acc = train_acc / len(dataloader)
-    print(f"Train Loss: {train_loss:.4f} | Train Accuracy: {train_acc:.2f}%")
+    print(f"Train Loss: {train_loss:.4f} | Train Accuracy: {train_acc * 100:.2f}%")
     return train_loss, train_acc
 
 def test_step(model, dataloader, loss_fn, device):
@@ -36,7 +36,7 @@ def test_step(model, dataloader, loss_fn, device):
 
     test_loss = test_loss / len(dataloader)
     test_acc = test_acc / len(dataloader)
-    print(f"Test Loss: {test_loss:.4f} | Test accuracy: {test_acc:.2f}%\n")
+    print(f"Test Loss: {test_loss:.4f} | Test accuracy: {test_acc * 100:.2f}%\n")
     return test_loss, test_acc
 
 def train(model, train_dataloader, test_dataloader, optimizer, loss_fn, epochs, device):
@@ -55,5 +55,22 @@ def train(model, train_dataloader, test_dataloader, optimizer, loss_fn, epochs, 
         results["test_loss"].append(test_loss)
         results["test_acc"].append(test_acc)
     return results
+
+
+def train_model(model, train_loader, loss_fn, optimizer, epochs, device):
+    model.train()
+    for epoch in range(epochs):
+        for batch, (X, y) in enumerate(train_loader):
+            X, y = X.to(device), y.to(device)
+            y_pred = model(X)
+            loss = loss_fn(y_pred, y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+
+
+
+
 
 
