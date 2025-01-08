@@ -77,7 +77,7 @@ def Build_MNISTClassifier(num_classes):
     return model
 
 def Build_SNGP_MNISTClassifier(num_classes=10, coeff=3.):
-    model = MNISTClassifier(num_classes=num_classes)
+    model = Build_MNISTClassifier(num_classes=num_classes)
     GP_KWARGS = {
         'num_inducing': 1024,
         'gp_scale': 1.0,
