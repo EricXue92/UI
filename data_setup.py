@@ -1,7 +1,7 @@
 import os
 import torch
 import torchvision
-from torchvision import datasets, transforms
+from torchvision import transforms
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 import scipy
@@ -16,7 +16,6 @@ class ShiftDataset(Dataset):
         self.roll_pixels = roll_pixels
         self.dataset = dataset
         self.transform = transform
-
     def __getitem__(self, index):
         image, label = self.dataset[index]
         if self.transform:
@@ -31,7 +30,6 @@ class ShiftDataset(Dataset):
                 image = torch.from_numpy(image)
         # return {"data": image, "label": label}
         return image, label
-
     def __len__(self):
         return len(self.dataset)
 

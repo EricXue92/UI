@@ -53,20 +53,12 @@ def hidden_helper(x, model, chunk_size=100):
     return logits, hidden
 
 # Compute the distance between the hidden representations of the training and (testing, shift, OOD )
-def distance_helper(x1, x2, k=10):
+def distance_helper(x1, x2, k=10, chunk_size=100):
     dists = torch.zeros((x2.shape[0], k), dtype=torch.float32)
-    chunk_size = 100
-    batches = int(x2.shape[0] / chunk_size)
-    for i in range(batches + 1):
-        if i != batches:
-            s = i * chunk_size
-            t = (i + 1) * chunk_size
-        else:
-            s = i * chunk_size
-            t = x2.shape[0]
-        # Compute distances for the current chunk
-        temp = compute_distance(x1, x2[s:t, :], k=k)
-        dists[s:t, :] = temp
+    num_chunks = (x2.shape[0] + chunk_size - 1) // chunk_size
+    for i in range(num_chunks):
+        s, t = i * chunk_size, min((i + 1) * chunk_size, x2.shape[0])
+        dists[s:t, :] = compute_distance(x1, x2[s:t, :], k=k)
     return dists
 
 # For each testing point, we choose 10 nearest points from training data
@@ -76,13 +68,7 @@ def compute_distance(train_hidden, test_hidden, k=10):
     topk_distances, topk_indices = torch.topk(-distances, k=k, dim=1)
     return -topk_distances
 
-def cal_correlation(x1, x2):
-    correlation_matrix = np.corrcoef(x1, x2)
-    correlation_coefficient = correlation_matrix[0, 1]
-    return correlation_coefficient
 
-def concat_data(x1, x2, x3):
-    return np.concatenate((x1, x2, x3), axis=0)
 
 
 def mc_dropout(model, x, n_samples=5, return_hidden=False):
@@ -121,11 +107,13 @@ def mc_dropout(model, x, n_samples=5, return_hidden=False):
 
         results["acc"], results["uncertainty"]= acc, uncertainty
         print(f"Test Accuracy: {acc:.4f} | Uncertainty shape: {uncertainty.shape}")
+
         if return_hidden:
             hiddens = torch.stack(hiddens, dim=0).mean(dim=0)
-            results["hiddens"] = hiddens.cpu().numpy()
+            results["hiddens"] = hiddens
         else:
             results["hiddens"] = None
+        # print(f"hidden shape: {hiddens.shape}")
         return results
 
 

@@ -64,7 +64,6 @@ class MNISTClassifier(nn.Module):
         x = x.view(-1, 64 * 7 * 7)
         x = self.relu(self.fc1(x))
         x = F.dropout(x, p=self.dropout_rate, training=self.training)
-
         logits = self.classifier(x, **kwargs)
         if return_hidden:
             return logits, x
@@ -98,32 +97,32 @@ def Build_SNGP_MNISTClassifier(num_classes=10, coeff=3.):
     replace_layer_with_gaussian(container=model, signature="classifier", **GP_KWARGS)
     return model
 
-# def main():
-#     num_classes = 10
-#     kwargs = {"return_random_features": False, "return_covariance":False,
-#               "update_precision_matrix": False, "update_covariance_matrix": False }
-#
-#     model = Build_MNISTClassifier(num_classes).to(device)
-#     sngp_model = Build_SNGP_MNISTClassifier(num_classes).to(device)
-#     ind_data = torch.randn(10, 1, 28, 28).to(device)
-#
-#     logits, features = model(ind_data, return_hidden=True)
-#     print("logits shape", logits.shape, "features shape", features.shape)
-#
-#
-#     for _ in range(10):
-#         sngp_model(ind_data, **{"update_precision_matrix": True})  # we remember the in-domain data
-#
-#     sngp_model.classifier.update_covariance_matrix()
-#
-#     ind_output =sngp_model(ind_data, **{"update_precision_matrix": False, "return_covariance": True})
-#
-#     ind_prob, ind_cov = ind_output
-#
-#     ind_uncertainty = torch.diagonal(ind_cov, 0)
-#
-#     print("ind_uncertainty", ind_uncertainty, "ind mean", torch.mean(ind_uncertainty))
-#
-#
-# if __name__ == "__main__":
-#     main()
+def main():
+    num_classes = 10
+    kwargs = {"return_random_features": False, "return_covariance":False,
+              "update_precision_matrix": False, "update_covariance_matrix": False }
+
+    model = Build_MNISTClassifier(num_classes).to(device)
+    sngp_model = Build_SNGP_MNISTClassifier(num_classes).to(device)
+    ind_data = torch.randn(10, 1, 28, 28).to(device)
+
+    logits, features = model(ind_data, return_hidden=True)
+    print("logits shape", logits.shape, "features shape", features.shape)
+
+
+    for _ in range(10):
+        sngp_model(ind_data, **{"update_precision_matrix": True})  # we remember the in-domain data
+
+    sngp_model.classifier.update_covariance_matrix()
+
+    ind_output =sngp_model(ind_data, **{"update_precision_matrix": False, "return_covariance": True})
+
+    ind_prob, ind_cov = ind_output
+
+    ind_uncertainty = torch.diagonal(ind_cov, 0)
+
+    print("ind_uncertainty", ind_uncertainty, "ind mean", torch.mean(ind_uncertainty))
+
+
+if __name__ == "__main__":
+    main()

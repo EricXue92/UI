@@ -7,7 +7,6 @@ from torch.utils.data import DataLoader
 from collections import defaultdict
 from pathlib import Path
 
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # os.environ["CUDA_VISIBLE_DEVICES"]= "1"
 # export CUDA_VISIBLE_DEVICES=1
@@ -19,7 +18,7 @@ train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_
 test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, drop_last=True) # 157
 
 shift_data = data_setup.get_shifted_mnist(rotate_degs=2, roll_pixels=2)
-shift_dataloader = shift_loader = DataLoader(shift_data , batch_size=1024, shuffle=False, drop_last=True)
+shift_dataloader = DataLoader(shift_data , batch_size=1024, shuffle=False, drop_last=True)
 
 loss_fn = torch.nn.CrossEntropyLoss()
 
@@ -75,10 +74,10 @@ def evaluate_ensemble(models, dataloader, device, return_hidden):
     y_true = y_true[:len(pred_y)]
     acc = (pred_y == y_true).float().mean().item()
     results["acc"] = acc
-    results["uncertainty"] = uncertainty.cpu().numpy()
+    results["uncertainty"] = uncertainty
     if return_hidden:
         hiddens = torch.cat(hiddens, dim=0).mean(dim=0)
-        results["hiddens"] = hiddens.cpu().numpy()
+        results["hiddens"] = hiddens
     else:
         results["hiddens"] = None
     return results

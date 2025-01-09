@@ -7,7 +7,6 @@ import torch.nn as nn
 def train_step(model, dataloader, loss_fn, optimizer, device):
     model.train()
     train_loss, train_acc = 0, 0
-    # Loop through data loader data batches
     for batch, (X, y) in enumerate(dataloader):
         # Send data to target device
         X, y = X.to(device), y.to(device)
@@ -37,7 +36,6 @@ def test_step(model, dataloader, loss_fn, device):
             test_loss += loss.item()
             test_pred_labels = test_pred_logits.argmax(dim=1)
             test_acc += ((test_pred_labels == y).sum().item() / len(test_pred_labels))
-
     hiddens = torch.cat(hiddens, dim=0)
     print(f"Hidden shape: {hiddens.shape}")
     test_loss = test_loss / len(dataloader)
