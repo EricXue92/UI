@@ -69,8 +69,6 @@ def compute_distance(train_hidden, test_hidden, k=10):
     return -topk_distances
 
 
-
-
 def mc_dropout(model, x, n_samples=5, return_hidden=False):
     results = {}
     predictions, hiddens, all_labels = [], [], []

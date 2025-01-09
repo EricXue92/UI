@@ -1,10 +1,9 @@
-import torch
-import data_setup, model_builder, utils, train
-import numpy as np
 from pathlib import Path
-from torch.utils.data import DataLoader
+import numpy as np
+import torch
 
-from utils import mc_dropout
+import data_setup, model_builder, utils, train
+from torch.utils.data import DataLoader
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 seed = utils.set_seed(42)
@@ -21,11 +20,11 @@ def load_model(model_path="models/normal_model.pth"):
 def load_sngp_model(model_path="models/sngp_model.pth"):
     sngp_model = model_builder.Build_SNGP_MNISTClassifier(10)
     sngp_model.load_state_dict(torch.load(model_path))
-    sngp_model.classifier.update_covariance_matrix()
     return sngp_model
 
 model = load_model().to(device)
 sngp_model = load_sngp_model().to(device)
+sngp_model.classifier.update_covariance_matrix()
 
 # For saved NN and SNGP models to get the shift accuracy
 def shift_acc(model, data_loader):
@@ -69,23 +68,21 @@ def get_all_hiddens(dataset=test_loader):
     results["sngp"] = get_hidden(sngp_model, dataset)
     results['dropout'] = utils.mc_dropout(model, dataset, return_hidden=True)['hiddens']
     results['deepensemble'] = train.get_deep_ensemble_results(dataset=dataset, return_hidden=True)["hiddens"]
-    print(results)
-    result_file_path = Path("results/all_hiddens.csv")
-    utils.save_results_to_csv(results, result_file_path)
+    # result_file_path = Path("results/all_hiddens.csv")
+    # utils.save_results_to_csv(results, result_file_path)
     return results
 
 # Only need to get the SNGP uncertainty, dropout and deep ensemble are already done
 def get_sngp_uncertainty(model=sngp_model, dataset=test_loader):
     uncertainties = []
-    kwargs = {"return_covariance": True}
+    kwargs = {"update_precision_matrix": False, "return_covariance": True}
     with torch.no_grad():
         for batch, (X, y) in enumerate(dataset):
             X = X.to(device)
-            _, cov = model(X, return_hidden=False, **kwargs )
+            _, cov = model(X, return_hidden=False, **kwargs)
             uncertainty = torch.diag(cov)
             uncertainties.append(uncertainty)
     uncertainties = torch.cat(uncertainties, dim=0)
-    print(f"Uncertainties : {uncertainties}")
     print(f"Uncertainty shape: {uncertainties.shape}")
     return uncertainties
 
@@ -100,7 +97,7 @@ def get_mc_results(num_models=5, return_hidden=True):
     model = load_model().to(device)
     test_loader, shift_loader, ood_loader = data_setup.get_all_test_dataloaders()
     results = utils.mc_dropout(model, test_loader, num_models, return_hidden)
-    print(f"Test Accuracy: {results['acc']:.4f} | Uncertainty shape: {results['uncertainty'].shape} | Hiddens: {results['hiddens']}")
+    print(f"Test Accuracy: {results['acc']:.4f} | Uncertainty shape: {results['uncertainty'].shape} | Hiddens shape: {results['hiddens'].shape}")
     result_file_path = Path("results/mcdropout.csv")
     utils.save_results_to_csv(results, result_file_path)
 
@@ -168,8 +165,6 @@ def main():
     ensemble_combined_corr = cal_correlation(ensemble_combined_uncertainty, ensemble_combined_dist)
 
     print(f"sngp_combined_corr: {sngp_combined_corr:.4f} | dropout_combined_corr: {dropout_combined_corr:.4f} | ensemble_combined_corr: {ensemble_combined_corr:.4f}")
-
-
 
 
 if __name__ == "__main__":

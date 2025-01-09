@@ -46,6 +46,7 @@ def test_step(model, dataloader, loss_fn, device):
 def train(model, train_dataloader, test_dataloader, optimizer, loss_fn, epochs, device):
     start_time = time.time()
     results = {"train_loss": [], "train_acc": [], "test_loss": [],  "test_acc": [], "time":[]}
+
     for epoch in tqdm(range(epochs)):
         if not isinstance(model.classifier, nn.Linear):
             model.classifier.reset_covariance_matrix()

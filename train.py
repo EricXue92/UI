@@ -104,7 +104,7 @@ def parse_arguments():
     parser.add_argument("--ensemble", action="store_true", help="Use ensemble or not")
     parser.add_argument("--sngp", action="store_false", help="Use SNGP or not")
     parser.add_argument("--return_hidden", action="store_false", help="Return hidden or not")
-    parser.add_argument("--coeff", type=float, default=3., help="Spectral normalization coefficient") # 3
+    parser.add_argument("--coeff", type=float, default=0.95, help="Spectral normalization coefficient") # 3
     parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay for the optimizer.")
     args = parser.parse_args()
     if sum([args.sngp, args.nn, args.ensemble]) != 1:
