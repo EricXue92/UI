@@ -53,13 +53,22 @@ def hidden_helper(x, model, chunk_size=100):
     return logits, hidden
 
 # Compute the distance between the hidden representations of the training and (testing, shift, OOD )
-def distance_helper(x1, x2, k=10, chunk_size=100):
-    dists = torch.zeros((x2.shape[0], k), dtype=torch.float32)
-    num_chunks = (x2.shape[0] + chunk_size - 1) // chunk_size
-    for i in range(num_chunks):
-        s, t = i * chunk_size, min((i + 1) * chunk_size, x2.shape[0])
-        dists[s:t, :] = compute_distance(x1, x2[s:t, :], k=k)
-    return dists
+def distance_helper(x1, x2, k=10):
+    dist = torch.zeros((x2.shape[0], k), device=x1.device)
+    # Define the chunk size (affects computational efficiency)
+    chunk_size = 50
+    batches = x2.shape[0] // chunk_size
+    for i in range(batches + 1):
+        if i != batches:
+            s = i * chunk_size
+            t = (i + 1) * chunk_size
+        else:
+            s = i * chunk_size
+            t = x2.shape[0]
+        # Compute distances for the current chunk
+        temp = compute_distance(x1, x2[s:t, :], k=k)
+        dist[s:t, :] = temp
+    return dist
 
 # For each testing point, we choose 10 nearest points from training data
 def compute_distance(train_hidden, test_hidden, k=10):
@@ -206,22 +215,6 @@ def cal_correlation(x1, x2):
 
 def concat_data(x1, x2, x3):
     return np.concatenate((x1, x2, x3), axis = 0)
-
-def analyze_model_uncertainty(model_name, test_mean, shift_mean, OOD_mean, test_var, shift_var, OOD_var):
-
-    print(f'{model_name}:')
-    model_dist = concat_data(test_mean, shift_mean, OOD_mean)
-
-    # Handle potential shape differences for variance in Deep Ensemble
-    if model_name == 'Deep ensemble':
-        model_var = concat_data(test_var.ravel(), shift_var.ravel(), OOD_var.ravel())
-    else:
-        model_var = concat_data(test_var, shift_var, OOD_var)
-
-    print(cal_correlation(model_dist, model_var))
-    print(cal_correlation(test_mean,  test_var))
-    print(cal_correlation(shift_mean, shift_var))
-    print(cal_correlation(OOD_mean,   OOD_var))
 
 
 # Compute the uncertainty (variance) and hidden representations of data (test, shift, OOD)

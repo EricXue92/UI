@@ -53,6 +53,7 @@ class MNISTClassifier(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         self.fc1 = nn.Linear(64 * 7 * 7, 128)
         self.relu = nn.ReLU()
+
         self.classifier = nn.Linear(128, num_classes)
         self.dropout_rate = 0.1
 
@@ -78,11 +79,11 @@ def Build_MNISTClassifier(num_classes):
 def Build_SNGP_MNISTClassifier(num_classes=10, coeff=0.95):
     model = Build_MNISTClassifier(num_classes=num_classes)
     GP_KWARGS = {
-        'num_inducing': 1024,
+        'num_inducing': 512,
         'gp_scale': 1.0,
         'gp_bias': 0.,
         'gp_kernel_type': 'gaussian', # linear
-        'gp_input_normalization': True,
+        'gp_input_normalization': False,  #####
         'gp_cov_discount_factor': -1,
         'gp_cov_ridge_penalty': 1.,
         'gp_output_bias_trainable': False,
@@ -90,39 +91,36 @@ def Build_SNGP_MNISTClassifier(num_classes=10, coeff=0.95):
         'gp_use_custom_random_features': True,
         'gp_random_feature_type': 'orf',
         'gp_output_imagenet_initializer': True,
-        'num_classes': num_classes,
-    }
+        'num_classes': num_classes }
+
     spec_norm_replace_list = ["Linear", "Conv2D"]
     model = convert_to_sn_my(model, spec_norm_replace_list, coeff)
     replace_layer_with_gaussian(container=model, signature="classifier", **GP_KWARGS)
     return model
 
-def main():
-    num_classes = 10
-    kwargs = {"return_random_features": False, "return_covariance":False,
-              "update_precision_matrix": False, "update_covariance_matrix": False }
-
-    model = Build_MNISTClassifier(num_classes).to(device)
-    sngp_model = Build_SNGP_MNISTClassifier(num_classes).to(device)
-    ind_data = torch.randn(10, 1, 28, 28).to(device)
-
-    logits, features = model(ind_data, return_hidden=True)
-    print("logits shape", logits.shape, "features shape", features.shape)
-
-
-    for _ in range(10):
-        sngp_model(ind_data, **{"update_precision_matrix": True})  # we remember the in-domain data
-
-    sngp_model.classifier.update_covariance_matrix()
-
-    ind_output =sngp_model(ind_data, **{"update_precision_matrix": False, "return_covariance": True})
-
-    ind_prob, ind_cov = ind_output
-
-    ind_uncertainty = torch.diagonal(ind_cov, 0)
-
-    print("ind_uncertainty", ind_uncertainty, "ind mean", torch.mean(ind_uncertainty))
-
-
-if __name__ == "__main__":
-    main()
+# def main():
+#     num_classes = 10
+#     model = Build_MNISTClassifier(num_classes).to(device)
+#     sngp_model = Build_SNGP_MNISTClassifier(num_classes).to(device)
+#     ind_data = torch.randn(10, 1, 28, 28).to(device)
+#
+#     logits, features = model(ind_data, return_hidden=True)
+#     print("logits shape", logits.shape, "features shape", features.shape)
+#
+#
+#     for _ in range(10):
+#         sngp_model(ind_data, **{"update_precision_matrix": True})  # we remember the in-domain data
+#
+#     sngp_model.classifier.update_covariance_matrix()
+#
+#     ind_output =sngp_model(ind_data, **{"update_precision_matrix": False, "return_covariance": True})
+#
+#     ind_prob, ind_cov = ind_output
+#
+#     ind_uncertainty = torch.diagonal(ind_cov, 0)
+#
+#     print("ind_uncertainty", ind_uncertainty, "ind mean", torch.mean(ind_uncertainty))
+#
+#
+# if __name__ == "__main__":
+#     main()

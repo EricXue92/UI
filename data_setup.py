@@ -60,7 +60,7 @@ def get_ood_mnist():
     transform = get_transform((0.1307,), (0.3081,))
     return load_dataset(torchvision.datasets.FashionMNIST, train=False, transform=transform)
 
-def get_all_test_dataloaders(batch_size=1024, rotate_degs=2, roll_pixels=4):
+def get_all_test_dataloaders(batch_size=1024, rotate_degs=2, roll_pixels=2):
     _, test_data = get_train_test_mnist()
     shift_data = get_shifted_mnist(rotate_degs=rotate_degs, roll_pixels=roll_pixels)
     ood_data = get_ood_mnist()
