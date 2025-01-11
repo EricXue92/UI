@@ -85,8 +85,8 @@ def get_all_hiddens(dataset=test_loader):
     results["sngp"] = get_sngp_hidden(sngp_model, dataset)
     results['dropout'] = utils.mc_dropout(model, dataset, return_hidden=True)['hiddens']
     results['deepensemble'] = train.get_deep_ensemble_results(dataset=dataset, return_hidden=True)["hiddens"]
-    result_file_path = Path("results/all_hiddens.csv")
-    utils.save_results_to_csv(results, result_file_path)
+    # result_file_path = Path("results/all_hiddens.csv")
+    # utils.save_results_to_csv(results, result_file_path)
     return results
 
 # Only need to get the SNGP uncertainty, dropout and deep ensemble are already done
@@ -162,8 +162,8 @@ def get_all_corrs():
 
         sngp_dist, dropout_dist, ensemble_dist =get_all_distance(dataset=dataloader)
         sngp_corr = cal_correlation(sngp_uncertainty, sngp_dist)
-        dropout_corr = cal_correlation(dropout_uncertainty, dropout_dist)
-        ensemble_corr = cal_correlation(ensemble_uncertainty, ensemble_dist)
+        dropout_corr = cal_correlation(dropout_uncertainty, dropout_dist) ###
+        ensemble_corr = cal_correlation(ensemble_uncertainty, ensemble_dist) ###
         print(f"sngp_corr: {sngp_corr:.4f} | dropout_corr: {dropout_corr:.4f} | ensemble_corr: {ensemble_corr:.4f}")
 
         res_corr["sngp_corr"].append(sngp_corr)
@@ -201,7 +201,7 @@ def get_all_corrs():
     utils.save_results_to_csv(res_uncertainty, file_path_uncertainty)
 
 def main():
-    #get_mc_results()
+    # get_mc_results()
     # get_all_shift_acc()
     get_all_corrs()
 

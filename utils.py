@@ -30,27 +30,20 @@ def save_model(model, target_dir, model_name):
 
 def save_results_to_csv(results, result_file_path):
     os.makedirs(os.path.dirname(result_file_path), exist_ok=True)
-    df = pd.DataFrame([results])
+    results = {key: value if isinstance(value, (list, pd.Series)) else [value] for key, value in results.items()}
+
+    df = pd.DataFrame(results)
+
     if not os.path.isfile(result_file_path):
-        df.to_csv(result_file_path, index=False, header=True)  # Add header if file doesn't exist
+        # if result_file_path == Path("results/all_shift_acc.csv") or result_file_path == Path("results/mean_uncertainty.csv"):
+        if len(df) == 3:
+            df.index = ["Test", "Shift", "OOD"]
+        # elif result_file_path == Path("results/corr.csv"):
+        elif len(df) == 4:
+            df.index = ["Test", "Shift", "OOD", "All over"]
+        df.to_csv(result_file_path, index=True, header=True)
     else:
         df.to_csv(result_file_path, mode='a', index=False, header=False)
-
-# Compute the hidden representations of the data (test, shift, OOD)
-def hidden_helper(x, model, chunk_size=100):
-    batches = int(np.ceil(x.shape[0] / chunk_size))
-    num_hidden = model.num_hidden
-    classes = model.classifier.out_features
-    hidden = torch.zeros((x.shape[0], num_hidden))
-    logits = torch.zeros((x.shape[0], classes))
-    for i in range(batches):
-        s = i * chunk_size
-        t = min((i + 1) * chunk_size, x.shape[0])
-        input_chunk = x[s:t, :]
-        logits_temp, hidden_temp = model(input_chunk, return_hidden=True)
-        hidden[s:t, :] = hidden_temp
-        logits[s:t, :] = logits_temp
-    return logits, hidden
 
 # Compute the distance between the hidden representations of the training and (testing, shift, OOD )
 def distance_helper(x1, x2, k=10):
@@ -123,7 +116,6 @@ def mc_dropout(model, x, n_samples=5, return_hidden=False):
         # print(f"hidden shape: {hiddens.shape}")
         return results
 
-
 def plot_distance_variance(test_mean_sngp, test_var_sngp, shift_mean_sngp, shift_var_sngp, OOD_mean_sngp, OOD_var_sngp,
                            test_mean_mc, test_var_mc, shift_mean_mc, shift_var_mc, OOD_mean_mc, OOD_var_mc,
                            test_mean_deep, test_var_deep, shift_mean_deep, shift_var_deep, OOD_mean_deep, OOD_var_deep,
@@ -149,7 +141,6 @@ def plot_distance_variance(test_mean_sngp, test_var_sngp, shift_mean_sngp, shift
 
     plt.savefig(filename)
     plt.show()
-
 
 def plot_hidden_distance_histograms(test_mean_inp, shift_mean_inp, OOD_mean_inp,
                                     test_mean_sngp, shift_mean_sngp, OOD_mean_sngp,
@@ -179,8 +170,6 @@ def plot_hidden_distance_histograms(test_mean_inp, shift_mean_inp, OOD_mean_inp,
 
     plt.savefig(filename)
     plt.show()
-
-
 
 def plot_variance_histograms(test_var_sngp, shift_var_sngp, OOD_var_sngp,
                              test_var_mc, shift_var_mc, OOD_var_mc,

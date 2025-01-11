@@ -71,7 +71,7 @@ def train(model, train_dataloader, test_dataloader, optimizer, loss_fn, epochs, 
     print(f"Training time: {train_time:.2f} seconds")
     result = {key: round(value[-1], 4) for key, value in results.items()}
     # get the last hidden state during the testing
-    result["hidden"] = hidden.cpu().numpy()
+    # result["hidden"] = hidden.cpu().numpy()
     print(f"last element: {result}")
     return result
 
