@@ -11,7 +11,7 @@ seed = utils.set_seed(42)
 train_data, test_data = data_setup.get_train_test_mnist()
 train_loader = DataLoader(train_data, batch_size=512, shuffle=True, drop_last=True) # 938
 
-# Defien the shift data level
+# defined the shift data level
 rotate_degs, roll_pixels = 2, 4 # 4
 test_loader, shift_loader, ood_loader = data_setup.get_all_test_dataloaders(batch_size=1024, rotate_degs=rotate_degs, roll_pixels=roll_pixels) # 4
 
@@ -201,8 +201,8 @@ def get_all_corrs():
     utils.save_results_to_csv(res_uncertainty, file_path_uncertainty)
 
 def main():
-    # get_mc_results()
-    # get_all_shift_acc()
+    get_mc_results()
+    get_all_shift_acc()
     get_all_corrs()
 
 

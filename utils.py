@@ -31,9 +31,7 @@ def save_model(model, target_dir, model_name):
 def save_results_to_csv(results, result_file_path):
     os.makedirs(os.path.dirname(result_file_path), exist_ok=True)
     results = {key: value if isinstance(value, (list, pd.Series)) else [value] for key, value in results.items()}
-
     df = pd.DataFrame(results)
-
     if not os.path.isfile(result_file_path):
         # if result_file_path == Path("results/all_shift_acc.csv") or result_file_path == Path("results/mean_uncertainty.csv"):
         if len(df) == 3:
@@ -70,13 +68,11 @@ def compute_distance(train_hidden, test_hidden, k=10):
     topk_distances, topk_indices = torch.topk(-distances, k=k, dim=1)
     return -topk_distances
 
-
 def mc_dropout(model, x, n_samples=5, return_hidden=False):
     results = {}
     predictions, hiddens, all_labels = [], [], []
     model.to(device)
     model.train()  # Ensure dropout is active
-
     with torch.no_grad():
         for _ in range(n_samples):
             batch_preds, batch_hiddens = [], []
@@ -196,41 +192,6 @@ def plot_variance_histograms(test_var_sngp, shift_var_sngp, OOD_var_sngp,
     plt.savefig(filename)
     plt.show()
 
-
-def cal_correlation(x1, x2):
-    correlation_matrix = np.corrcoef(x1, x2)
-    correlation_coefficient = correlation_matrix[0, 1]
-    return correlation_coefficient
-
-def concat_data(x1, x2, x3):
-    return np.concatenate((x1, x2, x3), axis = 0)
-
-
-# Compute the uncertainty (variance) and hidden representations of data (test, shift, OOD)
-def compute_variance(x, sngp_model, flag=False, chunk_size=100):
-    num_samples = x.shape[0]
-    batches = int(np.ceil(num_samples / chunk_size))
-    num_hidden = sngp_model.num_hidden
-    classes = sngp_model.classifier.out_features
-    hidden = torch.zeros((num_samples, num_hidden), dtype=torch.float32)
-    variance = torch.zeros((num_samples, 1), dtype=torch.float32)
-    logits = torch.zeros((num_samples, classes), dtype=torch.float32)
-    for i in range(batches):
-        start = i * chunk_size
-        end = min((i + 1) * chunk_size, num_samples)
-        x_batch = x[start:end]
-        (logits_temp, covmat_temp), hidden_temp = sngp_model(
-            x_batch, kwargs={"update_precision_matrix": False, "return_covariance": True}, return_hidden=True
-        )
-        covmat_diag = torch.diag(covmat_temp).unsqueeze(1)
-        # Store intermediate results
-        hidden[start:end] = hidden_temp
-        variance[start:end] = covmat_diag
-        logits[start:end] = logits_temp
-    # Compute mean variance
-    mean_var = torch.mean(variance).item()
-    print(f'Mean variance -- {mean_var}')
-    return hidden, logits, variance
 
 
 def main():
