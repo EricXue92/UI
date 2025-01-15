@@ -1,57 +1,123 @@
-
-import data_setup, engine, utils, DeepResNet
+import argparse
+import time
 import torch
+import data_setup, engine, model_builder, utils
 import torch.nn as nn
-import torch.optim as optim
+from torch.optim.lr_scheduler import StepLR
+from pathlib import Path
 
-NUM_EPOCHS = 200
-BATCH_SIZE = 512
-HIDDEN_UNITS = 128
-LEARNING_RATE = 1e-4
-NUM_LAYERS = 3
-NUM_CLASSES=1
-DROPOUT_RATE = 0.1
-
-# # Setup directories
-# train_dir = "data/pizza_steak_sushi/train"
-# test_dir = "data/pizza_steak_sushi/test"
-
-# Setup target device
 device = "cuda" if torch.cuda.is_available() else "cpu"
-utils.set_seed(42)
+utils.set_seed(23)
 
-dataloaders_dict = data_setup.create_dataloaders()
-input_dim, train_dataloader, val_dataloader =dataloaders_dict["input_dim"], dataloaders_dict["train"], dataloaders_dict["val"]
-test_dataloader, shift_dataloader, ood_dataloader = dataloaders_dict["test"], dataloaders_dict["shift"], dataloaders_dict["ood"]
+BATCH_SIZE = 512
+LR = 1e-4
+EPOCHS = 50
+WEIGHT_DECAY = 5e-4
+NUM_MODELS = 5
 
+res = data_setup.create_dataloaders()
+input_dim, train_loader, val_loader, test_loader, shift_loader, ood_loader = (res["input_dim"], res["train"], res["val"],
+                                                                              res["test"], res["shift"], res["ood"])
+loss_fn = nn.BCEWithLogitsLoss()
 
-model = DeepResNet.DeepResNet(
-    input_dim=input_dim,
-    num_layers=NUM_LAYERS,
-    num_hidden=HIDDEN_UNITS,
-    activation="relu",
-    num_classes=NUM_CLASSES,
-    dropout_rate=DROPOUT_RATE).to(device)
+def training_normal_model():
+    model = model_builder.Build_DeepResNet(input_dim=input_dim).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY) #  weight_decay=WEIGHT_DECAY
+    results = engine.train(model, train_loader, val_loader, test_loader, optimizer, loss_fn, EPOCHS, device)
+    utils.save_model(model, "models",  "normal_model.pth")
+    return results
 
-# Set loss and optimizer
-loss_fn = nn.CrossEntropyLoss()  # For multi-class classification
-optimizer = optim.Adam(model.parameters(), lr=1e-4)
+def training_sngp_model():
+    model = model_builder.Build_SNGP_DeepResNet(input_dim=input_dim).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY) #   weight_decay=WEIGHT_DECAY
+    results = engine.train(model, train_loader, val_loader, test_loader, optimizer, loss_fn,  EPOCHS, device)
+    # utils.save_model(model, "models",  "sngp_model.pth")
+    return results
 
-# Start training with help from engine.py
-engine.train(model=model,
-             train_dataloader=train_dataloader,
-             val_dataloader=val_dataloader,
-             test_dataloader=test_dataloader,
-             optimizer=optimizer,
-             loss_fn=loss_fn,
-             epochs=NUM_EPOCHS,
-             device=device)
+def train_ensemble(models, train_loader, learning_rate, num_epochs, device, weight_decay=WEIGHT_DECAY):
+    torch.cuda.synchronize()
+    start_time = time.time()
 
-utils.save_model(model=model, target_dir="models", model_name="DeepResNet.pth")
+    for i, model in enumerate(models):
+        model.to(device)
+        optimizer = torch.optim.Adam(model.parameters(), weight_decay=weight_decay, lr=learning_rate)
+        engine.train_model(model, train_loader, loss_fn, optimizer, epochs=num_epochs, device=device)
+        print(f"Ensemble model {i+1} trained.")
+    torch.cuda.synchronize()
+    end_time = time.time()
+    total_time = end_time - start_time
+    print(f"Ensemble training completed in {total_time:.2f} seconds.")
 
+def evaluate_ensemble(models, dataloader, device, return_hidden=False):
+    predictions, hiddens, all_labels = [], [], []
+    with torch.no_grad():
+        for model in models:
+            model.eval()
+            model_preds, model_hiddens = [], []
+            for X, y in dataloader:
+                X, y = X.to(device), y.to(device)
+                all_labels.append(y)
+                if return_hidden:
+                    logits, hidden = model(X, return_hidden=True)
+                    model_hiddens.append(hidden)
+                else:
+                    logits = model(X)
+                model_preds.append(logits)
+            predictions.append(torch.cat(model_preds, dim=0).unsqueeze(0))
+            if return_hidden:
+                hiddens.append(torch.cat(model_hiddens, dim=0).unsqueeze(0))
+    predictions = torch.cat(predictions, dim=0)
+    mean_prediction = predictions.mean(dim=0)
 
+    mean_std = predictions.std(dim=0)
+    uncertainty = mean_std.mean(dim=1)
 
+    pred_y = mean_prediction.argmax(dim=1)
+    y_true = torch.cat(all_labels, dim=0)
+    y_true = y_true[:len(pred_y)]
+    acc = (pred_y == y_true).float().mean().item()
 
+    results = {"acc": round(acc, 4), "uncertainty": uncertainty}
 
+    if return_hidden:
+        results["hiddens"] = torch.cat(hiddens, dim=0).mean(dim=0)
+    return results
 
+def get_deep_ensemble_results(dataset=test_loader, num_models=NUM_MODELS,
+                              learning_rate=LR, num_epochs=EPOCHS, return_hidden=False):
+    models = [model_builder.Build_DeepResNet(input_dim=input_dim) for _ in range(num_models)]
+    train_ensemble(models, train_loader, learning_rate, num_epochs, device)
+    results = evaluate_ensemble(models, dataset, device, return_hidden)
 
+    return results
+
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--nn", action="store_false", help="Use normal NN or not")
+    parser.add_argument("--ensemble", action="store_true", help="Use ensemble or not")
+    parser.add_argument("--sngp", action="store_true", help="Use SNGP or not")
+    parser.add_argument("--return_hidden", action="store_true", help="Return hidden or not")
+    args = parser.parse_args()
+    if sum([args.sngp, args.nn, args.ensemble]) != 1:
+        parser.error("Exactly one of --nn, --sngp or --ensemble must be set.")
+    return args
+
+def main():
+    args = parse_arguments()
+    if args.nn:
+        results = training_normal_model()
+        output_file = "results/nn.csv"
+    elif args.sngp:
+        results = training_sngp_model()
+        output_file = "results/sngp.csv"
+    elif args.ensemble:
+        res = get_deep_ensemble_results(test_loader, NUM_MODELS, LR, EPOCHS, args.return_hidden)
+        results = {"acc": res["acc"], "time": res["time"]}
+        output_file = "results/deepensemble.csv"
+    else:
+        raise ValueError("Invalid argument combination.")
+    utils.save_results_to_csv(results, Path(output_file))
+    print(f"Results saved to {output_file}")
+
+if __name__ == "__main__":
+    main()

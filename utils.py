@@ -3,8 +3,6 @@ from pathlib import Path
 import random
 import os
 import numpy as np
-import engine, model_builder, data_setup
-from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
@@ -20,96 +18,74 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     return seed
+
 def save_model(model, target_dir, model_name):
+    assert model_name.endswith(".pth") or model_name.endswith(".pt"), "model_name should end with '.pt' or '.pth'"
     target_dir_path = Path(target_dir)
     target_dir_path.mkdir(parents=True, exist_ok=True)
-    assert model_name.endswith(".pth") or model_name.endswith(".pt"), "model_name should end with '.pt' or '.pth'"
     model_save_path = target_dir_path / model_name
     print(f"[INFO] Saving model to: {model_save_path}")
     torch.save(model.state_dict(), model_save_path)
 
 def save_results_to_csv(results, result_file_path):
     os.makedirs(os.path.dirname(result_file_path), exist_ok=True)
-    results = {key: value if isinstance(value, (list, pd.Series)) else [value] for key, value in results.items()}
+    results = {key: (value.cpu().numpy() if isinstance(value, torch.Tensor) else value if isinstance(value, (list, pd.Series)) else [value])
+               for key, value in results.items() }
     df = pd.DataFrame(results)
     if not os.path.isfile(result_file_path):
-        # if result_file_path == Path("results/all_shift_acc.csv") or result_file_path == Path("results/mean_uncertainty.csv"):
         if len(df) == 3:
             df.index = ["Test", "Shift", "OOD"]
-        # elif result_file_path == Path("results/corr.csv"):
+            df.to_csv(result_file_path, index=True, header=True)
         elif len(df) == 4:
             df.index = ["Test", "Shift", "OOD", "All over"]
-        df.to_csv(result_file_path, index=True, header=True)
+            df.to_csv(result_file_path, index=True, header=True)
+        else:
+            df.to_csv(result_file_path, index=False, header=True)
     else:
         df.to_csv(result_file_path, mode='a', index=False, header=False)
 
-# Compute the distance between the hidden representations of the training and (testing, shift, OOD )
-def distance_helper(x1, x2, k=10):
+def distance_helper(x1, x2, k=200):
     dist = torch.zeros((x2.shape[0], k), device=x1.device)
     # Define the chunk size (affects computational efficiency)
     chunk_size = 50
-    batches = x2.shape[0] // chunk_size
-    for i in range(batches + 1):
-        if i != batches:
-            s = i * chunk_size
-            t = (i + 1) * chunk_size
-        else:
-            s = i * chunk_size
-            t = x2.shape[0]
-        # Compute distances for the current chunk
-        temp = compute_distance(x1, x2[s:t, :], k=k)
-        dist[s:t, :] = temp
+    for i in range(0, x2.shape[0], chunk_size):
+        s, t = i, min(i + chunk_size, x2.shape[0])
+        dist[s:t, :] = compute_distance(x1, x2[s:t, :], k=k)
     return dist
 
 # For each testing point, we choose 10 nearest points from training data
-def compute_distance(train_hidden, test_hidden, k=10):
+def compute_distance(train_hidden, test_hidden, k):
     distances = torch.norm(test_hidden.unsqueeze(1) - train_hidden.unsqueeze(0), dim=-1)
-    # Get the top k smallest distances (use negative distances to get smallest)
-    topk_distances, topk_indices = torch.topk(-distances, k=k, dim=1)
+    topk_distances, _ = torch.topk(-distances, k=k, dim=1)
     return -topk_distances
 
-def mc_dropout(model, x, n_samples=5, return_hidden=False):
-    results = {}
+def mc_dropout(model, dataloader, n_samples=5, return_hidden=False):
     predictions, hiddens, all_labels = [], [], []
-    model.to(device)
     model.train()  # Ensure dropout is active
     with torch.no_grad():
         for _ in range(n_samples):
             batch_preds, batch_hiddens = [], []
-            for batch, (X, y) in enumerate(x):
+            for X, y in dataloader:
                 X, y = X.to(device), y.to(device)
                 all_labels.append(y)
-                if return_hidden:
-                    logits, hidden = model(X, return_hidden=True)
-                    batch_hiddens.append(hidden)
-                else:
-                    logits = model(X)
+                logits, hidden = model(X, return_hidden=True) if return_hidden else (model(X), None)
                 batch_preds.append(logits)
-            batch_preds = torch.cat(batch_preds, dim=0)  # Combine batches
-            predictions.append(batch_preds)
+                if return_hidden:
+                    batch_hiddens.append(hidden)
+            predictions.append(torch.cat(batch_preds, dim=0))
             if return_hidden:
-                batch_hiddens = torch.cat(batch_hiddens, dim=0)
-                hiddens.append(batch_hiddens)
+                hiddens.append(torch.cat(batch_hiddens, dim=0))
 
         predictions = torch.stack(predictions, dim=0)
         mean_prediction = predictions.mean(dim=0)
-        mean_std = predictions.std(dim=0)
-        uncertainty = torch.mean(mean_std, dim=1)
-
+        uncertainty = predictions.std(dim=0).mean(dim=1)
         pred_y = mean_prediction.argmax(dim=1)
-        y_true = torch.cat(all_labels, dim=0)
-        y_true = y_true[:len(pred_y)]
+        y_true = torch.cat(all_labels, dim=0)[:len(pred_y)]
         acc = (pred_y == y_true).float().mean().item()
 
-        results["acc"], results["uncertainty"]= acc, uncertainty
-        print(f"Test Accuracy: {acc:.4f} | Uncertainty shape: {uncertainty.shape}")
-
+        results = {"acc": round(acc, 4), "uncertainty": uncertainty}
         if return_hidden:
-            hiddens = torch.stack(hiddens, dim=0).mean(dim=0)
-            results["hiddens"] = hiddens
-        else:
-            results["hiddens"] = None
-        # print(f"hidden shape: {hiddens.shape}")
+            results["hiddens"] = torch.stack(hiddens, dim=0).mean(dim=0)
         return results
 
 def plot_distance_variance(test_mean_sngp, test_var_sngp, shift_mean_sngp, shift_var_sngp, OOD_mean_sngp, OOD_var_sngp,

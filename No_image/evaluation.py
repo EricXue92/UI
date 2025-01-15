@@ -44,6 +44,7 @@ def shift_acc(model, data_loader):
 # Get all shift acc
 def get_all_shift_acc():
     results = {}
+
     results["nn"] = shift_acc(model, shift_loader)
     results["sngp"] = shift_acc(sngp_model, shift_loader)
     results['dropout'] = utils.mc_dropout(model, shift_loader)['acc']
@@ -56,11 +57,12 @@ def get_all_shift_acc():
 def get_hidden(model, dataloader):
     hiddens = []
     with torch.no_grad():
-        for X, y in dataloader:
+        for batch, (X, y) in enumerate(dataloader):
             X, y = X.to(device), y.to(device)
             logits, hidden = model(X, return_hidden=True)
             hiddens.append(hidden)
     hiddens = torch.cat(hiddens, dim=0)
+    print(f"Hidden shape: {hiddens.shape}")
     return hiddens
 
 # For sngp hidden
@@ -69,12 +71,16 @@ def get_sngp_hidden(model, dataloader):
     eval_kwargs = {'return_random_features': True, 'return_covariance': False,
                    'update_precision_matrix': False, 'update_covariance_matrix': False}
     with torch.no_grad():
-        for X, y in dataloader:
+        for batch, (X, y) in enumerate(dataloader):
             X, y = X.to(device), y.to(device)
             logits, hidden = model(X, **eval_kwargs)
             hiddens.append(hidden)
     hiddens = torch.cat(hiddens, dim=0)
+    print(f"Hidden shape: {hiddens.shape}")
     return hiddens
+
+
+
 
 def get_all_hiddens(dataset=test_loader):
     results = {}
@@ -96,6 +102,7 @@ def get_sngp_uncertainty(model=sngp_model, dataset=test_loader):
             uncertainty = torch.diag(cov)
             uncertainties.append(uncertainty)
     uncertainties = torch.cat(uncertainties, dim=0)
+    print(f"Uncertainty shape: {uncertainties.shape}")
     return uncertainties
 
 def get_all_uncertainty(dataset):
@@ -120,7 +127,7 @@ def get_all_distance(dataset=test_loader):
     ensemble_hidden_tr = train.get_deep_ensemble_results(dataset=train_loader, return_hidden=True)["hiddens"]
     all_hiddens = get_all_hiddens(dataset)
     sngp_hiddens, dropout_hiddens, ensemble_hiddens =  all_hiddens['sngp'], all_hiddens['dropout'], all_hiddens['deepensemble']
-    sngp_dist = utils.distance_helper(sngp_hidden_tr, sngp_hiddens, k=100)
+    sngp_dist = utils.distance_helper(sngp_hidden_tr, sngp_hiddens, k=200)
     sngp_dist = sngp_dist.mean(dim=1)
     print(f"sngp_dist shape: {sngp_dist.shape}")
     dropout_dist = utils.distance_helper(dropout_hidden_tr, dropout_hiddens)
