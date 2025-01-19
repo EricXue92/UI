@@ -14,7 +14,8 @@ pip install -r requirements.txt
 
 Run example:
 
-The running results will automatedly save in .csv file (e.g. nn.csv, sngp.csv) under the file /results
+The running results are automatically saved as .csv files (e.g., nn.csv, sngp.csv) in the /results directory.
+
 If you want to train SNGP, simply add the flag (and adjust the epochs):
 ```setup
 python train.py --sngp --epochs 20
