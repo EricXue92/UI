@@ -15,7 +15,11 @@ pip install -r requirements.txt
 Run example:
 
 If you want to train SNGP, simply add the flag (and adjust the epochs):
+```setup
 python train.py --sngp --epochs 20
+```
 
 If you want to train deep ensemble, simply add the flag (and adjust the  epochs):
+```setup
 python train.py --ensemble --epochs 10
+```
