@@ -4,7 +4,7 @@ The official implementation of the paper ["A unified uncertainty-informed approa
 
 &nbsp;
 ![The RFF-networks](RFF-networks.png)
-![The risk analysis flowchart](Risk-analysis-flowchart.png)
+
 
 To install requirements:
 ```setup
