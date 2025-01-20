@@ -125,6 +125,7 @@ def get_mc_results(num_models=5, return_hidden=False):
 def get_all_distance(dataset=test_loader):
     # Get the train hiddens for all models
     sngp_hidden_tr = get_hidden_representation(sngp_model, train_loader, model_type='sngp')
+
     dropout_hidden_tr = utils.mc_dropout(model, train_loader, return_hidden=True)['hiddens']
     ensemble_hidden_tr = train.get_deep_ensemble_results(dataset=train_loader, return_hidden=True)["hiddens"]
 
