@@ -39,12 +39,10 @@ def train_ensemble(models, train_loader, learning_rate, num_epochs, device, weig
     torch.cuda.synchronize()
     start_time = time.time()
     save_dir = "models"
-
     os.makedirs(save_dir, exist_ok=True)
     for i, model in enumerate(models):
         model.to(device)
         model_file = f"models/ensemble_model_{i}.pth"
-
         if os.path.exists(model_file):
             print(f"Model {i + 1} already exists. Loading the saved model.")
             model.load_state_dict(torch.load(model_file))
@@ -56,7 +54,6 @@ def train_ensemble(models, train_loader, learning_rate, num_epochs, device, weig
             torch.save(model.state_dict(), model_file)
             print(f"Model {i + 1} saved to {model_file}.")
         models[i] = model
-
     torch.cuda.synchronize()
     end_time = time.time()
     total_time = end_time - start_time
@@ -100,8 +97,16 @@ def get_deep_ensemble_results(dataset=test_loader, num_models=NUM_MODELS,
                               learning_rate=LR, num_epochs=EPOCHS, return_hidden=False):
 
     models = [model_builder.Build_DeepResNet(input_dim=input_dim) for _ in range(num_models)]
+    torch.cuda.synchronize()
+    start_time = time.time()
+
     models = train_ensemble(models, train_loader, learning_rate, num_epochs, device)
     results = evaluate_ensemble(models, dataset, device, return_hidden)
+
+    torch.cuda.synchronize()
+    end_time = time.time()
+    results["time"] = round(end_time - start_time, 4)
+
     return results
 
 def parse_arguments():

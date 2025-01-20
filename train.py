@@ -4,6 +4,7 @@ import torch
 import data_setup, engine, model_builder, utils
 from torch.utils.data import DataLoader
 from pathlib import Path
+import os
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 utils.set_seed(42)
@@ -40,12 +41,24 @@ def training_sngp_model():
     utils.save_model(model, "models",  "sngp_model.pth")
     return results
 
-def train_ensemble(models, train_loader, learning_rate, num_epochs, device, weight_decay=1e-4):
+def train_ensemble(models, train_loader, learning_rate, num_epochs, device, weight_decay=WEIGHT_DECAY):
+    save_dir = "models"
+    os.makedirs(save_dir, exist_ok=True)
     for i, model in enumerate(models):
         model.to(device)
-        optimizer = torch.optim.Adam(model.parameters(), weight_decay=weight_decay, lr=learning_rate)
-        engine.train_model(model, train_loader, loss_fn, optimizer, epochs=num_epochs, device=device)
-        print(f"Ensemble model {i+1} trained.")
+        model_file = f"models/ensemble_model_{i}.pth"
+        if os.path.exists(model_file):
+            print(f"Model {i + 1} already exists. Loading the saved model.")
+            model.load_state_dict(torch.load(model_file))
+        else:
+            print(f"Training ensemble model {i + 1} ")
+            optimizer = torch.optim.Adam(model.parameters(), weight_decay=weight_decay, lr=learning_rate)
+            model = engine.train_model(model, train_loader, loss_fn, optimizer, epochs=num_epochs, device=device)
+            print(f"Ensemble model {i + 1} trained.")
+            torch.save(model.state_dict(), model_file)
+            print(f"Model {i + 1} saved to {model_file}.")
+        models[i] = model
+    return models
 
 def evaluate_ensemble(models, dataloader, device, return_hidden=False):
     predictions, hiddens, all_labels = [], [], []
@@ -87,7 +100,7 @@ def get_deep_ensemble_results(num_classes=NUM_CLASSES, dataset=test_loader, num_
     models = [model_builder.Build_MNISTClassifier(num_classes) for _ in range(num_models)]
     torch.cuda.synchronize()
     start_time = time.time()
-    train_ensemble(models, train_loader, learning_rate, num_epochs, device)
+    models = train_ensemble(models, train_loader, learning_rate, num_epochs, device)
     results = evaluate_ensemble(models, dataset, device, return_hidden)
     torch.cuda.synchronize()
     end_time = time.time()
@@ -96,9 +109,9 @@ def get_deep_ensemble_results(num_classes=NUM_CLASSES, dataset=test_loader, num_
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--nn", action="store_false", help="Use normal NN or not")
+    parser.add_argument("--nn", action="store_true", help="Use normal NN or not")
     parser.add_argument("--num_classes", type=int, default=10, help="Number of classes.")
-    parser.add_argument("--ensemble", action="store_true", help="Use ensemble or not")
+    parser.add_argument("--ensemble", action="store_false", help="Use ensemble or not")
     parser.add_argument("--sngp", action="store_true", help="Use SNGP or not")
     parser.add_argument("--return_hidden", action="store_true", help="Return hidden or not")
     args = parser.parse_args()

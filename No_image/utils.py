@@ -74,6 +74,7 @@ def mc_dropout(model, dataloader, n_samples=5, return_hidden=False):
                 batch_preds.append(logits)
                 if return_hidden:
                     batch_hiddens.append(hidden)
+                torch.cuda.empty_cache()
             predictions.append(torch.cat(batch_preds, dim=0))
             if return_hidden:
                 hiddens.append(torch.cat(batch_hiddens, dim=0))
@@ -84,7 +85,6 @@ def mc_dropout(model, dataloader, n_samples=5, return_hidden=False):
         pred_y = mean_prediction.argmax(dim=1)
         y_true = torch.cat(all_labels, dim=0)[:len(pred_y)]
         acc = (pred_y == y_true).float().mean().item()
-
         results = {"acc": round(acc, 4), "uncertainty": uncertainty}
         if return_hidden:
             results["hiddens"] = torch.stack(hiddens, dim=0).mean(dim=0)

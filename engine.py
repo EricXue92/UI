@@ -81,6 +81,9 @@ def train_model(model, train_loader, loss_fn, optimizer, epochs, device):
             loss.backward()
             optimizer.step()
 
+    return model
+
+
 
 
 
