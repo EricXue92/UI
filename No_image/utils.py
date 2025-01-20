@@ -62,7 +62,6 @@ def compute_distance(train_hidden, test_hidden, k=10):
     return -topk_distances
 
 def mc_dropout(model, dataloader, n_samples=5, return_hidden=False):
-    results = {}
     predictions, hiddens, all_labels = [], [], []
     model.train()  # Ensure dropout is active
     with torch.no_grad():
@@ -109,6 +108,7 @@ def plot_distance_variance(test_mean_sngp, test_var_sngp, shift_mean_sngp, shift
         ax.scatter(test_mean, test_var, alpha=0.5, rasterized=True, label='Normal')
         ax.scatter(shift_mean, shift_var, s=10, alpha=0.2, rasterized=True, label='Shift')
         ax.scatter(OOD_mean, OOD_var, alpha=0.5, rasterized=True, label='OOD')
+
         ax.legend(fontsize=14)
         ax.set_xlabel('Distance in the hidden space', fontsize=16)
         ax.set_ylabel('Variance', fontsize=16)
@@ -200,6 +200,35 @@ def plot_loss_curves(results):
 
     plt.savefig('loss_curves.pdf')
     plt.show()
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def plot_predictive_uncertainty(test_var_sngp, shift_var_sngp, OOD_var_sngp, save_path='var_risk.pdf'):
+    sns.set(style="whitegrid", font_scale=1.5)
+    # Create the figure and axis
+    fig, ax1 = plt.subplots(1, 1, figsize=(10, 6), layout='constrained')
+    # Plot histograms for each dataset
+    ax1.hist(test_var_sngp, bins=20, alpha=0.5, label='Normal')
+    ax1.hist(shift_var_sngp, bins=20, alpha=0.5, label='Shift')
+    ax1.hist(OOD_var_sngp, bins=20, alpha=0.5, label='OOD')
+    # Add vertical lines for specific statistics
+    plt.axvline(x=test_var_sngp.max(), lw=2, color='black', ls='--', label='Max Normal')
+    plt.axvline(x=shift_var_sngp.min(), lw=2, color='red', ls='--', label='Min Shift')
+    plt.axvline(x=OOD_var_sngp.min(), lw=2, color='blue', ls='--', label='Min OOD')
+    # Print values for debugging (optional)
+    print(f"Max Normal: {test_var_sngp.max()}")
+    print(f"Min Shift: {shift_var_sngp.min()}")
+    print(f"Min OOD: {OOD_var_sngp.min()}")
+    # Customize plot
+    ax1.legend(fontsize=14)
+    ax1.set_xlabel('Predictive Uncertainty', fontsize=16)
+    ax1.set_ylabel('Frequency', fontsize=16)
+    # Save the plot
+    plt.savefig(save_path)
+    plt.close()
+
 
 def main():
     pass

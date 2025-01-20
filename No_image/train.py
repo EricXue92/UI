@@ -31,7 +31,7 @@ def training_sngp_model():
     model = model_builder.Build_SNGP_DeepResNet(input_dim=input_dim).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY) #   weight_decay=WEIGHT_DECAY
     results = engine.train(model, train_loader, val_loader, test_loader, optimizer, loss_fn,  EPOCHS, device)
-    # utils.save_model(model, "models",  "sngp_model.pth")
+    utils.save_model(model, "models",  "sngp_model.pth")
     return results
 
 def train_ensemble(models, train_loader, learning_rate, num_epochs, device, weight_decay=WEIGHT_DECAY):
@@ -47,6 +47,7 @@ def train_ensemble(models, train_loader, learning_rate, num_epochs, device, weig
     end_time = time.time()
     total_time = end_time - start_time
     print(f"Ensemble training completed in {total_time:.2f} seconds.")
+    return models
 
 def evaluate_ensemble(models, dataloader, device, return_hidden=False):
     predictions, hiddens, all_labels = [], [], []
@@ -85,17 +86,18 @@ def evaluate_ensemble(models, dataloader, device, return_hidden=False):
 
 def get_deep_ensemble_results(dataset=test_loader, num_models=NUM_MODELS,
                               learning_rate=LR, num_epochs=EPOCHS, return_hidden=False):
+
     models = [model_builder.Build_DeepResNet(input_dim=input_dim) for _ in range(num_models)]
-    train_ensemble(models, train_loader, learning_rate, num_epochs, device)
+    models = train_ensemble(models, train_loader, learning_rate, num_epochs, device)
     results = evaluate_ensemble(models, dataset, device, return_hidden)
 
     return results
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--nn", action="store_false", help="Use normal NN or not")
+    parser.add_argument("--nn", action="store_true", help="Use normal NN or not")
     parser.add_argument("--ensemble", action="store_true", help="Use ensemble or not")
-    parser.add_argument("--sngp", action="store_true", help="Use SNGP or not")
+    parser.add_argument("--sngp", action="store_false", help="Use SNGP or not")
     parser.add_argument("--return_hidden", action="store_true", help="Return hidden or not")
     args = parser.parse_args()
     if sum([args.sngp, args.nn, args.ensemble]) != 1:

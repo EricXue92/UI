@@ -10,7 +10,7 @@ utils.set_seed(42)
 
 BATCH_SIZE = 512
 LR = 0.003
-EPOCHS = 10
+EPOCHS = 20
 WEIGHT_DECAY = 1e-4
 NUM_MODELS = 5
 ROTATE_DEGS = 2
@@ -96,10 +96,10 @@ def get_deep_ensemble_results(num_classes=NUM_CLASSES, dataset=test_loader, num_
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--nn", action="store_true", help="Use normal NN or not")
+    parser.add_argument("--nn", action="store_false", help="Use normal NN or not")
     parser.add_argument("--num_classes", type=int, default=10, help="Number of classes.")
     parser.add_argument("--ensemble", action="store_true", help="Use ensemble or not")
-    parser.add_argument("--sngp", action="store_false", help="Use SNGP or not")
+    parser.add_argument("--sngp", action="store_true", help="Use SNGP or not")
     parser.add_argument("--return_hidden", action="store_true", help="Return hidden or not")
     args = parser.parse_args()
     if sum([args.sngp, args.nn, args.ensemble]) != 1:

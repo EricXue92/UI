@@ -118,9 +118,10 @@ def get_all_distance(dataset=test_loader):
     sngp_hidden_tr = get_sngp_hidden(sngp_model, train_loader)
     dropout_hidden_tr = utils.mc_dropout(model, train_loader, return_hidden=True)['hiddens']
     ensemble_hidden_tr = train.get_deep_ensemble_results(dataset=train_loader, return_hidden=True)["hiddens"]
+
     all_hiddens = get_all_hiddens(dataset)
     sngp_hiddens, dropout_hiddens, ensemble_hiddens =  all_hiddens['sngp'], all_hiddens['dropout'], all_hiddens['deepensemble']
-    sngp_dist = utils.distance_helper(sngp_hidden_tr, sngp_hiddens, k=100)
+    sngp_dist = utils.distance_helper(sngp_hidden_tr, sngp_hiddens, k=50) # 100
     sngp_dist = sngp_dist.mean(dim=1)
     print(f"sngp_dist shape: {sngp_dist.shape}")
     dropout_dist = utils.distance_helper(dropout_hidden_tr, dropout_hiddens)
@@ -159,7 +160,7 @@ def get_all_corrs():
         ensemble_corr = cal_correlation(ensemble_uncertainty, ensemble_dist) ###
         print(f"sngp_corr: {sngp_corr:.4f} | dropout_corr: {dropout_corr:.4f} | ensemble_corr: {ensemble_corr:.4f}")
 
-        res_corr["sngp_corr"].append(round(sngp_corr, 4) )
+        res_corr["sngp_corr"].append(round(sngp_corr, 4))
         res_corr["dropout_corr"].append(round(dropout_corr, 4) )
         res_corr["ensemble_corr"].append(round(ensemble_corr, 4) )
 
@@ -194,9 +195,9 @@ def get_all_corrs():
     utils.save_results_to_csv(res_uncertainty, file_path_uncertainty)
 
 def main():
-    get_mc_results()
+    # get_mc_results()
     get_all_shift_acc()
-    get_all_corrs()
+    # get_all_corrs()
 
 
 if __name__ == "__main__":

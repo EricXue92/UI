@@ -36,7 +36,7 @@ def Build_MNISTClassifier(num_classes):
 def Build_SNGP_MNISTClassifier(num_classes=10, coeff=0.95):
     model = Build_MNISTClassifier(num_classes=num_classes)
     GP_KWARGS = {
-        'num_inducing': 1024,
+        'num_inducing': 512,
         'gp_scale': 1.0,
         'gp_bias': 0.,
         'gp_kernel_type': 'gaussian', #  linear

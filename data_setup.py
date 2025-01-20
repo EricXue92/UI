@@ -54,7 +54,7 @@ def get_shifted_mnist(rotate_degs=2, roll_pixels=4):
     mnist_data = load_dataset(torchvision.datasets.MNIST, train=False, transform=None)
     return ShiftDataset(shifting=True, rotate_degs=rotate_degs, roll_pixels=roll_pixels, dataset=mnist_data, transform=transform)
 
-# Get FashionMNIST as OOD dataset with same MNIST transformation
+## Get FashionMNIST as OOD dataset with same MNIST transformation
 # def get_ood_mnist():
 #     transform = get_transform((0.1307,), (0.3081,))
 #     return load_dataset(torchvision.datasets.FashionMNIST, train=False, transform=transform)
