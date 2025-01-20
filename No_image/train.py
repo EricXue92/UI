@@ -1,4 +1,5 @@
 import argparse
+import os.path
 import time
 import torch
 import data_setup, engine, model_builder, utils
@@ -37,12 +38,25 @@ def training_sngp_model():
 def train_ensemble(models, train_loader, learning_rate, num_epochs, device, weight_decay=WEIGHT_DECAY):
     torch.cuda.synchronize()
     start_time = time.time()
+    save_dir = "models"
 
+    os.makedirs(save_dir, exist_ok=True)
     for i, model in enumerate(models):
         model.to(device)
-        optimizer = torch.optim.Adam(model.parameters(), weight_decay=weight_decay, lr=learning_rate)
-        engine.train_model(model, train_loader, loss_fn, optimizer, epochs=num_epochs, device=device)
-        print(f"Ensemble model {i+1} trained.")
+        model_file = f"models/ensemble_model_{i}.pth"
+
+        if os.path.exists(model_file):
+            print(f"Model {i + 1} already exists. Loading the saved model.")
+            model.load_state_dict(torch.load(model_file))
+        else:
+            print(f"Training ensemble model {i + 1} ")
+            optimizer = torch.optim.Adam(model.parameters(), weight_decay=weight_decay, lr=learning_rate)
+            model = engine.train_model(model, train_loader, loss_fn, optimizer, epochs=num_epochs, device=device)
+            print(f"Ensemble model {i + 1} trained.")
+            torch.save(model.state_dict(), model_file)
+            print(f"Model {i + 1} saved to {model_file}.")
+        models[i] = model
+
     torch.cuda.synchronize()
     end_time = time.time()
     total_time = end_time - start_time
@@ -77,9 +91,7 @@ def evaluate_ensemble(models, dataloader, device, return_hidden=False):
     y_true = torch.cat(all_labels, dim=0)
     y_true = y_true[:len(pred_y)]
     acc = (pred_y == y_true).float().mean().item()
-
     results = {"acc": round(acc, 4), "uncertainty": uncertainty}
-
     if return_hidden:
         results["hiddens"] = torch.cat(hiddens, dim=0).mean(dim=0)
     return results
@@ -90,14 +102,13 @@ def get_deep_ensemble_results(dataset=test_loader, num_models=NUM_MODELS,
     models = [model_builder.Build_DeepResNet(input_dim=input_dim) for _ in range(num_models)]
     models = train_ensemble(models, train_loader, learning_rate, num_epochs, device)
     results = evaluate_ensemble(models, dataset, device, return_hidden)
-
     return results
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--nn", action="store_true", help="Use normal NN or not")
-    parser.add_argument("--ensemble", action="store_true", help="Use ensemble or not")
-    parser.add_argument("--sngp", action="store_false", help="Use SNGP or not")
+    parser.add_argument("--ensemble", action="store_false", help="Use ensemble or not")
+    parser.add_argument("--sngp", action="store_true", help="Use SNGP or not")
     parser.add_argument("--return_hidden", action="store_true", help="Return hidden or not")
     args = parser.parse_args()
     if sum([args.sngp, args.nn, args.ensemble]) != 1:
@@ -114,7 +125,7 @@ def main():
         output_file = "results/sngp.csv"
     elif args.ensemble:
         res = get_deep_ensemble_results(test_loader, NUM_MODELS, LR, EPOCHS, args.return_hidden)
-        results = {"acc": res["acc"], "time": res["time"]}
+        results = {"acc": res["acc"] }
         output_file = "results/deepensemble.csv"
     else:
         raise ValueError("Invalid argument combination.")

@@ -76,11 +76,11 @@ def create_dataloaders():
     ood_dataset = TensorDataset(OOD_tensor, torch.zeros(OOD_tensor.shape[0], dtype=torch.float32))  # Dummy labels for OOD
 
     # Create DataLoaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
-    shift_loader = DataLoader(shift_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
-    ood_loader = DataLoader(ood_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
+    shift_loader = DataLoader(shift_dataset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
+    ood_loader = DataLoader(ood_dataset, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
 
     # Return DataLoaders in a dictionary
     return {
