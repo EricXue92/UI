@@ -107,8 +107,6 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, optimizer, l
 
 
 def train_model(model, train_loader, loss_fn, optimizer, epochs, device):
-    torch.cuda.synchronize()
-    start_time = time.time()
     model.train()
     for epoch in range(epochs):
         for X, y in train_loader:
@@ -117,10 +115,7 @@ def train_model(model, train_loader, loss_fn, optimizer, epochs, device):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-    torch.cuda.synchronize()
-    end_time = time.time()
-    elapsed_time = round(end_time - start_time, 2)
-    print(f"Training completed in {elapsed_time:.2f} seconds.")
+    return model
 
 
 

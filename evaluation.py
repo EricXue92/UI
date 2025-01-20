@@ -52,34 +52,33 @@ def get_all_shift_acc():
     result_file_path = Path("results/all_shift_acc.csv")
     utils.save_results_to_csv(results, result_file_path)
 
-# For nn hidden
-def get_hidden(model, dataloader):
-    hiddens = []
-    with torch.no_grad():
-        for X, y in dataloader:
-            X, y = X.to(device), y.to(device)
-            logits, hidden = model(X, return_hidden=True)
-            hiddens.append(hidden)
-    hiddens = torch.cat(hiddens, dim=0)
-    return hiddens
 
-# For sngp hidden
-def get_sngp_hidden(model, dataloader):
+def get_hidden_representation(model, dataloader, model_type='nn'):
     hiddens = []
-    eval_kwargs = {'return_random_features': True, 'return_covariance': False,
-                   'update_precision_matrix': False, 'update_covariance_matrix': False}
+    # For SNGP, specific evaluation kwargs
+    eval_kwargs = {
+        'return_random_features': True,
+        'return_covariance': False,
+        'update_precision_matrix': False,
+        'update_covariance_matrix': False
+    }
     with torch.no_grad():
         for X, y in dataloader:
             X, y = X.to(device), y.to(device)
-            logits, hidden = model(X, **eval_kwargs)
+            if model_type == 'nn':
+                logits, hidden = model(X, return_hidden=True)  # For regular NN
+            elif model_type == 'sngp':
+                logits, hidden = model(X, **eval_kwargs)  # For SNGP
+            else:
+                raise ValueError("Invalid model_type. Choose 'nn' or 'sngp'.")
             hiddens.append(hidden)
     hiddens = torch.cat(hiddens, dim=0)
     return hiddens
 
 def get_all_hiddens(dataset=test_loader):
     results = {}
-    results["nn"] = get_hidden(model, dataset)
-    results["sngp"] = get_sngp_hidden(sngp_model, dataset)
+    results["nn"] = get_hidden_representation(model, dataset, model_type='nn')
+    results["sngp"] = get_hidden_representation(sngp_model, dataset, model_type='sngp')
     results['dropout'] = utils.mc_dropout(model, dataset, return_hidden=True)['hiddens']
     results['deepensemble'] = train.get_deep_ensemble_results(dataset=dataset, return_hidden=True)["hiddens"]
     return results
@@ -115,7 +114,7 @@ def get_mc_results(num_models=5, return_hidden=False):
 
 def get_all_distance(dataset=test_loader):
     # Get the train hiddens for all models
-    sngp_hidden_tr = get_sngp_hidden(sngp_model, train_loader)
+    sngp_hidden_tr = get_hidden_representation(sngp_model, train_loader, model_type='sngp')
     dropout_hidden_tr = utils.mc_dropout(model, train_loader, return_hidden=True)['hiddens']
     ensemble_hidden_tr = train.get_deep_ensemble_results(dataset=train_loader, return_hidden=True)["hiddens"]
 

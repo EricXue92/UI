@@ -10,7 +10,6 @@ from sklearn.metrics import roc_curve
 device = "cuda" if torch.cuda.is_available() else "cpu"
 seed = utils.set_seed(42)
 
-
 res = data_setup.create_dataloaders()
 input_dim, train_loader, val_loader, test_loader, shift_loader, ood_loader = (res["input_dim"], res["train"], res["val"],
                                                                               res["test"], res["shift"], res["ood"])
@@ -50,7 +49,6 @@ def get_all_shift_acc():
     results["sngp"] = shift_acc(sngp_model, shift_loader)
     results['dropout'] = utils.mc_dropout(model, shift_loader)['acc']
     results['deepensemble'] = train.get_deep_ensemble_results(dataset=shift_loader)["acc"]
-
     result_file_path = Path("results/all_shift_acc.csv")
     utils.save_results_to_csv(results, result_file_path)
 
@@ -154,19 +152,16 @@ def get_all_corrs():
     file_path_corr, file_path_uncertainty = Path("results/corr.csv"), Path("results/mean_uncertainty.csv")
 
     data_loaders = [test_loader, shift_loader, ood_loader]
-    # data_loaders = [test_loader]
-
     sngp_combined_uncertainty, dropout_combined_uncertainty, ensemble_combined_uncertainty = [], [], []
     sngp_combined_dist, dropout_combined_dist, ensemble_combined_dist = [], [], []
 
     for dataloader in data_loaders:
         sngp_uncertainty, dropout_uncertainty, ensemble_uncertainty = get_all_uncertainty(dataset=dataloader)
-
         res_uncertainty["sngp_uncertainty"].append(round(sngp_uncertainty.mean().item(), 4))
         res_uncertainty["dropout_uncertainty"].append(round(dropout_uncertainty.mean().item(),4))
         res_uncertainty["ensemble_uncertainty"].append(round(ensemble_uncertainty.mean().item(),4))
 
-        sngp_dist, dropout_dist, ensemble_dist =get_all_distance(dataset=dataloader)
+        sngp_dist, dropout_dist, ensemble_dist = get_all_distance(dataset=dataloader)
         sngp_corr = cal_correlation(sngp_uncertainty, sngp_dist)
         dropout_corr = cal_correlation(dropout_uncertainty, dropout_dist) ###
         ensemble_corr = cal_correlation(ensemble_uncertainty, ensemble_dist) ###
@@ -210,23 +205,19 @@ def uncertainty_thershold(model, data_loader):
     uncertainties = uncertainties.cpu().numpy()
     correctness =  correctness.cpu().numpy()
     s_fpr, s_tpr, s_thresh  = roc_curve(correctness, uncertainties)
-    print(f"Threshold: {s_thresh}")
     max_j = max(zip(s_tpr, s_fpr), key=lambda x: x[0] - x[1])
     slide_uq = s_thresh[list(zip(s_tpr, s_fpr)).index(max_j)]
-    print(f"Slide uncertainty: {slide_uq}, quantile {np.mean(uncertainties<=slide_uq)}")
-
+    print(f"Slide uncertainty: {slide_uq}, quantile of low uncertainty: {np.mean(uncertainties<=slide_uq)}")
 
 def main():
     # get_mc_results()
     # get_all_shift_acc()
-    # get_all_corrs()
+    get_all_corrs()
     # data_loaders = [test_loader, shift_loader, ood_loader]
     # for dataloader in data_loaders:
     #     get_sngp_uncertainty(model=sngp_model, dataset=dataloader)
 
-    uncertainty_thershold(sngp_model, test_loader)
-
-
+    # uncertainty_thershold(sngp_model, test_loader)
 
 if __name__ == "__main__":
     main()
