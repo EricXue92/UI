@@ -8,14 +8,7 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MetaShift" beforeDir="false" afterPath="$PROJECT_DIR$/MetaShift" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MetaShift/dataset/understanding_full-candidate-subsets-pkl.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/MetaShift/dataset/understanding_full-candidate-subsets-pkl.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/data_setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/data_setup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/No_image/evaluation.py" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/evaluation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/train.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_setup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/evaluation.py" beforeDir="false" afterPath="$PROJECT_DIR$/evaluation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_builder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -511,7 +504,7 @@
       <workItem from="1737164485313" duration="27195000" />
       <workItem from="1737280905831" duration="5058000" />
       <workItem from="1737292633667" duration="213000" />
-      <workItem from="1737292858447" duration="3691000" />
+      <workItem from="1737292858447" duration="4330000" />
     </task>
     <servers />
   </component>
