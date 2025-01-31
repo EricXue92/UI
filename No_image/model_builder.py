@@ -8,7 +8,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class DeepResNet(nn.Module):
     def __init__(self, input_dim, num_layers=3, num_hidden=128,
-                 activation="relu", num_classes=1, dropout_rate=0.2):
+                 activation="relu", num_classes=1, dropout_rate=0.1):
         super().__init__()
         self.num_layers = num_layers
         self.num_classes = num_classes
@@ -60,7 +60,7 @@ def Build_SNGP_DeepResNet(input_dim):
     model = Build_DeepResNet(input_dim=input_dim)
     GP_KWARGS = {
         'num_inducing': 512,
-        'gp_scale': 1.0,
+        'gp_scale': 10.0, # 10
         'gp_bias': 0.,
         'gp_kernel_type': 'gaussian', # linear
         'gp_input_normalization': False,  #####
