@@ -4,16 +4,17 @@ import time
 import torch
 import data_setup, engine, model_builder, utils
 import torch.nn as nn
+from torch.optim.lr_scheduler import CyclicLR
+
 from torch.optim.lr_scheduler import StepLR
 from pathlib import Path
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 utils.set_seed(23)
-
 BATCH_SIZE = 512
 LR = 1e-4
-EPOCHS = 50
-WEIGHT_DECAY = 5e-4
+EPOCHS = 200
+WEIGHT_DECAY = 1e-4
 NUM_MODELS = 5
 
 res = data_setup.create_dataloaders()
@@ -112,8 +113,8 @@ def get_deep_ensemble_results(dataset=test_loader, num_models=NUM_MODELS,
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--nn", action="store_true", help="Use normal NN or not")
-    parser.add_argument("--ensemble", action="store_false", help="Use ensemble or not")
-    parser.add_argument("--sngp", action="store_true", help="Use SNGP or not")
+    parser.add_argument("--ensemble", action="store_true", help="Use ensemble or not")
+    parser.add_argument("--sngp", action="store_false", help="Use SNGP or not")
     parser.add_argument("--return_hidden", action="store_true", help="Return hidden or not")
     args = parser.parse_args()
     if sum([args.sngp, args.nn, args.ensemble]) != 1:

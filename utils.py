@@ -169,7 +169,6 @@ def plot_variance_histograms(test_var_sngp, shift_var_sngp, OOD_var_sngp,
     plt.show()
 
 
-
 def main():
     pass
 

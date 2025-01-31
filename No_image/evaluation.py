@@ -91,16 +91,23 @@ def get_sngp_uncertainty(model=sngp_model, dataset=test_loader, return_correctne
               'update_precision_matrix': False, 'update_covariance_matrix': False}
     with torch.no_grad():
         for batch, (X, y) in enumerate(dataset):
-            batch_correct = []
             X, y = X.to(device), y.to(device)
             logits, cov = model(X, return_hidden=False, **kwargs)
             uncertainty = torch.diag(cov)
             uncertainties.append(uncertainty)
+
             preds = torch.sigmoid(logits) > 0.5
             correct = (preds == y).float().squeeze(1)
             correctness.append(1 - correct)
+
+    if correctness and uncertainties:
+        expected_size = correctness[0].shape[0]
+        correctness = [c for c in correctness if c.shape[0] == expected_size]
+        uncertainties = [u for u in uncertainties if u.shape[0] == expected_size]
+
     uncertainties = torch.cat(uncertainties, dim=0)
     correctness = torch.cat(correctness, dim=0)
+
     print(f"SNGP Uncertainty shape: {uncertainties.shape}")
     print(f"Correctness shape: {correctness.shape}")
     if not return_correctness:
@@ -210,15 +217,24 @@ def uncertainty_thershold(model, data_loader):
     slide_uq = s_thresh[list(zip(s_tpr, s_fpr)).index(max_j)]
     print(f"Slide uncertainty: {slide_uq}, quantile of low uncertainty: {np.mean(uncertainties<=slide_uq)}")
 
+
 def main():
     # get_mc_results()
     # get_all_shift_acc()
-    get_all_corrs()
-    # data_loaders = [test_loader, shift_loader, ood_loader]
-    # for dataloader in data_loaders:
-    #     get_sngp_uncertainty(model=sngp_model, dataset=dataloader)
+    # get_all_corrs()
+    Uq_threshold = uncertainty_thershold(sngp_model, test_loader)
 
-    # uncertainty_thershold(sngp_model, test_loader)
+
+    sngp_uq = []
+    data_loaders = [test_loader, shift_loader, ood_loader]
+
+    for dataloader in data_loaders:
+        uq = get_sngp_uncertainty(model=sngp_model, dataset=dataloader)
+        sngp_uq.append(uq.cpu().numpy())
+
+    utils.plot_predictive_uncertainty(sngp_uq[0], sngp_uq[1], sngp_uq[2], Uq_threshold,
+                                      save_path='UQ_Threshold.pdf')
+
 
 if __name__ == "__main__":
     main()
