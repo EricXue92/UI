@@ -169,6 +169,31 @@ def plot_variance_histograms(test_var_sngp, shift_var_sngp, OOD_var_sngp,
     plt.show()
 
 
+def plot_predictive_uncertainty(test_var_sngp, shift_var_sngp, OOD_var_sngp, Uq_threshold,
+                                save_path='UQ_Threshold.pdf'):
+    sns.set(style="whitegrid", font_scale=1.5)
+    # Create the figure and axis
+    fig, ax1 = plt.subplots(1, 1, figsize=(10, 6), layout='constrained')
+    # Plot histograms for each dataset
+    ax1.hist(test_var_sngp, bins=20, alpha=0.5, label='Normal')
+    ax1.hist(shift_var_sngp, bins=20, alpha=0.5, label='Shift')
+    ax1.hist(OOD_var_sngp, bins=20, alpha=0.5, label='OOD')
+    # Add vertical lines for specific statistics
+    plt.axvline(x=test_var_sngp.max(), lw=2, color='black', ls='--', label =r'$U_{q}$')
+    plt.axvline(x=Uq_threshold, lw=2, color='red', ls='--', label = r'$U_{YJ}$')
+    # Print values for debugging (optional)
+    print(f"Max Normal: {test_var_sngp.max()}")
+    # print(f"Min Shift: {shift_var_sngp.min()}")
+    # print(f"Min OOD: {OOD_var_sngp.min()}")
+    # Customize plot
+    ax1.legend(fontsize=20)
+    ax1.set_xlabel('Predictive Uncertainty', fontsize=16)
+    ax1.set_ylabel('Frequency', fontsize=16)
+    # Save the plot
+    plt.savefig(save_path)
+    plt.show()
+    plt.close()
+
 def main():
     pass
 

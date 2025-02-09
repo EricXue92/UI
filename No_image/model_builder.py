@@ -74,7 +74,7 @@ def Build_SNGP_DeepResNet(input_dim):
         'num_classes': 1}
 
     spec_norm_replace_list = ["Linear", "Conv2D"]
-    coeff = 3.
+    coeff = 0.95
     model = convert_to_sn_my(model, spec_norm_replace_list, coeff)
     replace_layer_with_gaussian(container=model, signature="classifier", **GP_KWARGS)
     return model

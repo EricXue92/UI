@@ -4,16 +4,13 @@ import time
 import torch
 import data_setup, engine, model_builder, utils
 import torch.nn as nn
-from torch.optim.lr_scheduler import CyclicLR
-
-from torch.optim.lr_scheduler import StepLR
 from pathlib import Path
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 utils.set_seed(23)
 BATCH_SIZE = 512
 LR = 1e-4
-EPOCHS = 200
+EPOCHS = 2000
 WEIGHT_DECAY = 1e-4
 NUM_MODELS = 5
 
