@@ -40,7 +40,7 @@ def Build_SNGP_MNISTClassifier(num_classes=10, coeff=0.95):
         'gp_scale': 1.0,
         'gp_bias': 0.,
         'gp_kernel_type': 'gaussian', #  linear
-        'gp_input_normalization': False,  #####
+        'gp_input_normalization': False,
         'gp_cov_discount_factor': -1,
         'gp_cov_ridge_penalty': 1.,
         'gp_output_bias_trainable': False,

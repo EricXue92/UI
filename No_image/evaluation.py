@@ -3,7 +3,6 @@ import numpy as np
 import torch
 from collections import defaultdict
 import data_setup, model_builder, utils, train
-from torch.utils.data import DataLoader
 import torch.nn as nn
 from sklearn.metrics import roc_curve
 
@@ -29,7 +28,6 @@ model = load_model().to(device)
 sngp_model = load_sngp_model().to(device)
 sngp_model.classifier.update_covariance_matrix()
 
-# For saved NN and SNGP models to get the shift accuracy
 def shift_acc(model, data_loader):
     total_acc = 0
     model.eval()
@@ -216,6 +214,7 @@ def uncertainty_thershold(model, data_loader):
     max_j = max(zip(s_tpr, s_fpr), key=lambda x: x[0] - x[1])
     slide_uq = s_thresh[list(zip(s_tpr, s_fpr)).index(max_j)]
     print(f"Slide uncertainty: {slide_uq}, quantile of low uncertainty: {np.mean(uncertainties<=slide_uq)}")
+    return slide_uq
 
 
 def main():
@@ -224,16 +223,16 @@ def main():
     # get_all_corrs()
     Uq_threshold = uncertainty_thershold(sngp_model, test_loader)
 
-
     sngp_uq = []
     data_loaders = [test_loader, shift_loader, ood_loader]
 
     for dataloader in data_loaders:
         uq = get_sngp_uncertainty(model=sngp_model, dataset=dataloader)
         sngp_uq.append(uq.cpu().numpy())
-
-    utils.plot_predictive_uncertainty(sngp_uq[0], sngp_uq[1], sngp_uq[2], Uq_threshold,
-                                      save_path='UQ_Threshold.pdf')
+    print(np.mean(sngp_uq[0]))
+    print(np.mean(sngp_uq[1]))
+    print(np.mean(sngp_uq[2]))
+    utils.plot_predictive_uncertainty(sngp_uq[0], sngp_uq[1], sngp_uq[2], Uq_threshold, 'UQ_Threshold.pdf')
 
 
 if __name__ == "__main__":

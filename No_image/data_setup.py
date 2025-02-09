@@ -1,18 +1,14 @@
-import os
-
 import torch
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, TensorDataset
-
 import pandas as pd
 pd.set_option('display.max_columns', None)
 
 def create_dataloaders():
     batch_size, Frac = 512, 0.1
-    seed = 23
-    # Load and sample the training data
+    seed = 12
     X_train = pd.read_csv('Diabetes-Data-Shift/X_train.csv').sample(frac=Frac, random_state=seed)
     y_train = pd.read_csv('Diabetes-Data-Shift/y_train.csv').sample(frac=Frac, random_state=seed)
 
@@ -32,14 +28,14 @@ def create_dataloaders():
 
 
     # Add Gaussian noise to the shifted test data
-    shift_noises = np.random.normal(loc=0.0, scale=0.3, size=X_shift.shape)
+    shift_noises = np.random.normal(loc=0.0, scale=0.4, size=X_shift.shape) # 0.3
     X_shift = shift_noises + X_shift.to_numpy()
 
     # Load out-of-distribution (OOD) data
     ood = pd.read_csv("heart_attack.csv")
 
     # Add Gaussian noise to the OOD data
-    ood_noises = np.random.normal(loc=0.0, scale=0.7, size=ood.shape)
+    ood_noises = np.random.normal(loc=0, scale=0.7, size=ood.shape) # 0, 0.7
     OOD = ood_noises + ood.to_numpy()
 
     # Scale all datasets using MinMaxScaler
@@ -52,7 +48,7 @@ def create_dataloaders():
     X_test = scaler.transform(X_test.values)
     X_shift = scaler.transform(X_shift)
 
-    OOD = MinMaxScaler().fit_transform(OOD)
+    OOD = MinMaxScaler().fit_transform(OOD) + np.random.normal(loc=0.0005, scale=0.7, size=ood.shape)
 
     X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
     y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32)

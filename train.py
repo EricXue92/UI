@@ -111,8 +111,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--nn", action="store_true", help="Use normal NN or not")
     parser.add_argument("--num_classes", type=int, default=10, help="Number of classes.")
-    parser.add_argument("--ensemble", action="store_false", help="Use ensemble or not")
-    parser.add_argument("--sngp", action="store_true", help="Use SNGP or not")
+    parser.add_argument("--ensemble", action="store_true", help="Use ensemble or not")
+    parser.add_argument("--sngp", action="store_false", help="Use SNGP or not")
     parser.add_argument("--return_hidden", action="store_true", help="Return hidden or not")
     args = parser.parse_args()
     if sum([args.sngp, args.nn, args.ensemble]) != 1:
