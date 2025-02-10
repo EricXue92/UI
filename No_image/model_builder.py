@@ -78,3 +78,4 @@ def Build_SNGP_DeepResNet(input_dim):
     model = convert_to_sn_my(model, spec_norm_replace_list, coeff)
     replace_layer_with_gaussian(container=model, signature="classifier", **GP_KWARGS)
     return model
+
