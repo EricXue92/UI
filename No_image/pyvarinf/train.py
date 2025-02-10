@@ -4,14 +4,16 @@ import pyvarinf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
 from pathlib import Path
-
 
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 from utils import set_seed
-from data_setup import create_dataloaders
+
+
+input_dim, train_loader, val_loader, test_loader, shift_loader, ood_loader = (res["input_dim"], res["train"], res["val"],
+                                                                              res["test"], res["shift"], res["ood"])
+loss_fn = nn.BCEWithLogitsLoss()
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"

@@ -10,10 +10,17 @@ def train_step(model, dataloader, loss_fn, optimizer, device):
     model.train()
     total_loss, total_acc = 0, 0
     kwargs = {}
-    if not isinstance(model.classifier, nn.Linear):
-        model.classifier.reset_covariance_matrix()
-        kwargs = {'return_random_features': False, 'return_covariance': False,
-                  'update_precision_matrix': True, 'update_covariance_matrix': False}
+
+    if not hasattr(model, '_variationalize_module'):
+        if not isinstance(model.classifier, nn.Linear):
+            model.classifier.reset_covariance_matrix()
+            kwargs = {'return_random_features': False, 'return_covariance': False,
+                      'update_precision_matrix': True, 'update_covariance_matrix': False}
+        else:
+            print("Using the normal model!!")
+    else:
+        print("Using the VI model!!")
+
     for X, y in dataloader:
         X, y = X.to(device), y.to(device)
         optimizer.zero_grad()
@@ -34,10 +41,15 @@ def test_step(model, dataloader, loss_fn, device):
     total_loss, total_acc = 0, 0
     hiddens = []
     eval_kwargs = {}
-    if not isinstance(model.classifier, nn.Linear):
-        model.classifier.update_covariance_matrix()
-        eval_kwargs = {'return_random_features': False, 'return_covariance': False,
-                       'update_precision_matrix': False, 'update_covariance_matrix': False}
+
+    if not hasattr(model, '_variationalize_module'):
+        if not isinstance(model.classifier, nn.Linear):
+            model.classifier.update_covariance_matrix()
+            eval_kwargs = {'return_random_features': False, 'return_covariance': False,
+                           'update_precision_matrix': False, 'update_covariance_matrix': False}
+    else:
+        print("Using the VI model or normal model!!")
+
     with torch.no_grad():
         for X,y in dataloader:
             X, y = X.to(device), y.to(device)
