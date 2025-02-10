@@ -1,0 +1,3 @@
+[submodule "pyvarinf"]
+	path = pyvarinf
+	url = https://github.com/ctallec/pyvarinf
