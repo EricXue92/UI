@@ -5,14 +5,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e2080805-2ec6-49b9-87b3-d3e764dc5d4c" name="Changes" comment="i like zxg">
-      <change afterPath="$PROJECT_DIR$/pyvarinf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pyvarinf/build_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pyvarinf/evaluation.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pyvarinf/train.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/LICENSE.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/build_model.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/evaluation.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/main_regression.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/pyvarinf/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/pyvarinf/tests/test_sample.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/pyvarinf/tests/test_var.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/pyvarinf/vi.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/setup.cfg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/setup.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/No_image/pyvarinf/train.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MetaShift" beforeDir="false" afterPath="$PROJECT_DIR$/MetaShift" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MetaShift/dataset/understanding_full-candidate-subsets-pkl.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/MetaShift/dataset/understanding_full-candidate-subsets-pkl.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyvarinf/main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyvarinf/main_regression.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/pyvarinf/main_regression.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyvarinf" beforeDir="false" afterPath="$PROJECT_DIR$/pyvarinf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyvarinf/build_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyvarinf/build_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyvarinf/evaluation.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyvarinf/evaluation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyvarinf/pyvarinf/vi.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyvarinf/pyvarinf/vi.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyvarinf/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyvarinf/train.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,7 +58,7 @@
         <option name="title" value="Current Branch" />
       </GitPushTagMode>
     </option>
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/pyvarinf" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="ROOT_SYNC" value="SYNC" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -134,8 +148,8 @@
     "WebServerToolWindowPanel.toolwindow.show.date": "false",
     "WebServerToolWindowPanel.toolwindow.show.permissions": "false",
     "WebServerToolWindowPanel.toolwindow.show.size": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "/Users/eric/Github-projects /UI/pyvarinf",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/Users/eric/Github-projects /UI/No_image",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -148,6 +162,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/No_image" />
       <recent name="$PROJECT_DIR$/pyvarinf" />
       <recent name="$PROJECT_DIR$" />
     </key>
@@ -227,7 +242,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="plot" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="train (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="UI" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -236,12 +251,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pyvarinf" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/plot.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pyvarinf/train.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -297,19 +312,19 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.evaluation (2)" />
-      <item itemvalue="Python.train" />
-      <item itemvalue="Python.plot" />
-      <item itemvalue="Python.evaluation" />
       <item itemvalue="Python.evaluation (1)" />
+      <item itemvalue="Python.evaluation (2)" />
+      <item itemvalue="Python.evaluation" />
+      <item itemvalue="Python.train (1)" />
+      <item itemvalue="Python.train" />
     </list>
     <recent_temporary>
       <list>
         <item itemvalue="Python.evaluation (2)" />
+        <item itemvalue="Python.train (1)" />
         <item itemvalue="Python.train" />
         <item itemvalue="Python.evaluation" />
         <item itemvalue="Python.train" />
-        <item itemvalue="Python.evaluation (1)" />
       </list>
     </recent_temporary>
   </component>
@@ -545,7 +560,11 @@
       <workItem from="1738660440602" duration="1680000" />
       <workItem from="1738825141319" duration="3577000" />
       <workItem from="1738921995791" duration="1602000" />
-      <workItem from="1739004332737" duration="15018000" />
+      <workItem from="1739004332737" duration="34117000" />
+      <workItem from="1739153950535" duration="97000" />
+      <workItem from="1739154049807" duration="730000" />
+      <workItem from="1739156183306" duration="15000" />
+      <workItem from="1739156243483" duration="4014000" />
     </task>
     <servers />
   </component>
@@ -589,8 +608,8 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/UI$Constants.coverage" NAME="Constants Coverage Results" MODIFIED="1735785973389" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/MetaShift/dataset" />
-    <SUITE FILE_PATH="coverage/DUE$evaluate_ood.coverage" NAME="evaluate_ood Coverage Results" MODIFIED="1733797819541" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lib" />
     <SUITE FILE_PATH="coverage/DUE$two_gou_accelerator.coverage" NAME="two_gou_accelerator Coverage Results" MODIFIED="1728290579595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/DUE$evaluate_ood.coverage" NAME="evaluate_ood Coverage Results" MODIFIED="1733797819541" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lib" />
     <SUITE FILE_PATH="coverage/UI$experiment.coverage" NAME="experiment Coverage Results" MODIFIED="1736153526232" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/google-research/uq_benchmark_2019/mnist" />
     <SUITE FILE_PATH="coverage/DUE$datasets.coverage" NAME="datasets Coverage Results" MODIFIED="1735044535114" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lib" />
     <SUITE FILE_PATH="coverage/UI$data_lib__1_.coverage" NAME="data_lib (1) Coverage Results" MODIFIED="1736153522240" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/google-research/uq_benchmark_2019/mnist" />
@@ -603,7 +622,7 @@
     <SUITE FILE_PATH="coverage/DUE$train.coverage" NAME="train Coverage Results" MODIFIED="1735203353714" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DUE$train_due_new_cifar_sngp.coverage" NAME="train_due_new_cifar_sngp Coverage Results" MODIFIED="1729141790329" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DUE$train_due_new_cifar__1_.coverage" NAME="train_due_new_cifar (1) Coverage Results" MODIFIED="1729151324356" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/UI$train__1_.coverage" NAME="train (1) Coverage Results" MODIFIED="1738302729318" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/No_image" />
+    <SUITE FILE_PATH="coverage/UI$train__1_.coverage" NAME="train (1) Coverage Results" MODIFIED="1739157094264" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyvarinf" />
     <SUITE FILE_PATH="coverage/Uncertainty_informed$train.coverage" NAME="data_setup Coverage Results" MODIFIED="1735651821358" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DUE$train_due_new_cancer.coverage" NAME="train_due_new_cancer Coverage Results" MODIFIED="1729153656108" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DUE$PDF_Rename.coverage" NAME="PDF_Rename Coverage Results" MODIFIED="1731313743556" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$USER_HOME$/Desktop/Literatures" />
@@ -621,7 +640,7 @@
     <SUITE FILE_PATH="coverage/UI$domain_generalization_cat_dog.coverage" NAME="domain_generalization_cat_dog Coverage Results" MODIFIED="1735785813304" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="/" />
     <SUITE FILE_PATH="coverage/UI$data_setup.coverage" NAME="data_setup Coverage Results" MODIFIED="1738334595969" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/No_image" />
     <SUITE FILE_PATH="coverage/DUE$generate_repre.coverage" NAME="generate_repre Coverage Results" MODIFIED="1735188193378" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/UI$main.coverage" NAME="train Coverage Results" MODIFIED="1739081265088" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyvarinf" />
+    <SUITE FILE_PATH="coverage/UI$main.coverage" NAME="train Coverage Results" MODIFIED="1739115210980" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyvarinf" />
     <SUITE FILE_PATH="coverage/DUE$train_cancer_ipgp.coverage" NAME="train_cancer_ipgp Coverage Results" MODIFIED="1729927464365" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DUE$train_cancer2.coverage" NAME="train_cancer2 Coverage Results" MODIFIED="1729760025160" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/UI$domain_generalization_cat_dog__1_.coverage" NAME="domain_generalization_cat_dog Coverage Results" MODIFIED="1735786057387" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/MetaShift/dataset" />
@@ -629,7 +648,7 @@
     <SUITE FILE_PATH="coverage/UI$model_builder__1_.coverage" NAME="model_builder (1) Coverage Results" MODIFIED="1737194317638" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/No_image" />
     <SUITE FILE_PATH="coverage/DUE$train_cancer.coverage" NAME="train_cancer Coverage Results" MODIFIED="1729829117261" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/UI$train.coverage" NAME="train Coverage Results" MODIFIED="1738826383344" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/UI$evaluation__2_.coverage" NAME="evaluation (2) Coverage Results" MODIFIED="1739081830444" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyvarinf" />
+    <SUITE FILE_PATH="coverage/UI$evaluation__2_.coverage" NAME="evaluation (2) Coverage Results" MODIFIED="1739157739403" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyvarinf" />
     <SUITE FILE_PATH="coverage/DUE$train_cifar_sngp.coverage" NAME="train_cifar_sngp Coverage Results" MODIFIED="1729154684730" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DUE$convnext.coverage" NAME="convnext Coverage Results" MODIFIED="1730341658085" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/due" />
     <SUITE FILE_PATH="coverage/DUE$train_due_new.coverage" NAME="train_due_new Coverage Results" MODIFIED="1727337056395" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
