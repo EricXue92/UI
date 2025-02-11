@@ -5,20 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e2080805-2ec6-49b9-87b3-d3e764dc5d4c" name="Changes" comment="i like zxg">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MetaShift" beforeDir="false" afterPath="$PROJECT_DIR$/MetaShift" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MetaShift/dataset/understanding_full-candidate-subsets-pkl.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/MetaShift/dataset/understanding_full-candidate-subsets-pkl.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/engine.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/model_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/model_builder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/pyvarinf/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/pyvarinf/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/pyvarinf/LICENSE.txt" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/pyvarinf/LICENSE.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/pyvarinf/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/pyvarinf/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/pyvarinf/main_regression.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/pyvarinf/main_regression.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/pyvarinf/pyvarinf/tests/test_sample.py" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/pyvarinf/pyvarinf/tests/test_sample.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/pyvarinf/pyvarinf/tests/test_var.py" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/pyvarinf/pyvarinf/tests/test_var.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/pyvarinf/setup.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/pyvarinf/setup.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/pyvarinf/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/pyvarinf/train.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/No_image/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/No_image/train.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pyvarinf" beforeDir="false" afterPath="$PROJECT_DIR$/pyvarinf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pyvarinf/build_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyvarinf/build_model.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pyvarinf/evaluation.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyvarinf/evaluation.py" afterDir="false" />
@@ -88,78 +75,78 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
-    "Python.Constants.executor": "Run",
-    "Python.DeepResNet.executor": "Run",
-    "Python.DeepRestNetSNGP.executor": "Run",
-    "Python.PDF_Rename.executor": "Run",
-    "Python.__init__.executor": "Run",
-    "Python.brfss.executor": "Run",
-    "Python.builder_model.executor": "Run",
-    "Python.convnext.executor": "Run",
-    "Python.data_lib (1).executor": "Run",
-    "Python.data_lib.executor": "Debug",
-    "Python.data_setup (1).executor": "Run",
-    "Python.data_setup.executor": "Run",
-    "Python.datasets.executor": "Run",
-    "Python.diabetes_readmission.executor": "Run",
-    "Python.domain_generalization_cat_dog (1).executor": "Run",
-    "Python.domain_generalization_cat_dog.executor": "Run",
-    "Python.engine (1).executor": "Run",
-    "Python.engine.executor": "Run",
-    "Python.evaluate_ood.executor": "Run",
-    "Python.evaluation (1).executor": "Run",
-    "Python.evaluation (2).executor": "Run",
-    "Python.evaluation.executor": "Run",
-    "Python.experiment.executor": "Run",
-    "Python.generate_full_MetaShift.executor": "Run",
-    "Python.generate_repre.executor": "Run",
-    "Python.helper_functions.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.model_builder (1).executor": "Run",
-    "Python.model_builder.executor": "Run",
-    "Python.one_train_cancer.executor": "Run",
-    "Python.plot.executor": "Run",
-    "Python.run_expt.executor": "Run",
-    "Python.subpopulation_shift_cat_dog_indoor_outdoor.executor": "Run",
-    "Python.temp.executor": "Run",
-    "Python.train (1).executor": "Run",
-    "Python.train (2).executor": "Run",
-    "Python.train (3).executor": "Run",
-    "Python.train.executor": "Run",
-    "Python.train_cancer.executor": "Run",
-    "Python.train_cancer2.executor": "Run",
-    "Python.train_cancer_ipgp.executor": "Run",
-    "Python.train_cifar.executor": "Run",
-    "Python.train_cifar_sngp.executor": "Run",
-    "Python.train_due_new.executor": "Run",
-    "Python.train_due_new_cancer.executor": "Run",
-    "Python.train_due_new_cifar (1).executor": "Run",
-    "Python.train_due_new_cifar.executor": "Run",
-    "Python.train_due_new_cifar_sngp.executor": "Run",
-    "Python.two_gou_accelerator.executor": "Run",
-    "Python.utils.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "WebServerToolWindowPanel.toolwindow.highlight.mappings": "true",
-    "WebServerToolWindowPanel.toolwindow.highlight.symlinks": "true",
-    "WebServerToolWindowPanel.toolwindow.show.date": "false",
-    "WebServerToolWindowPanel.toolwindow.show.permissions": "false",
-    "WebServerToolWindowPanel.toolwindow.show.size": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "/Users/eric/Github-projects /UI/No_image",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "two.files.diff.last.used.file": "/Users/eric/Github-projects /DUE/train_cancer2.py",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
+    &quot;Python.Constants.executor&quot;: &quot;Run&quot;,
+    &quot;Python.DeepResNet.executor&quot;: &quot;Run&quot;,
+    &quot;Python.DeepRestNetSNGP.executor&quot;: &quot;Run&quot;,
+    &quot;Python.PDF_Rename.executor&quot;: &quot;Run&quot;,
+    &quot;Python.__init__.executor&quot;: &quot;Run&quot;,
+    &quot;Python.brfss.executor&quot;: &quot;Run&quot;,
+    &quot;Python.builder_model.executor&quot;: &quot;Run&quot;,
+    &quot;Python.convnext.executor&quot;: &quot;Run&quot;,
+    &quot;Python.data_lib (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.data_lib.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.data_setup (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.data_setup.executor&quot;: &quot;Run&quot;,
+    &quot;Python.datasets.executor&quot;: &quot;Run&quot;,
+    &quot;Python.diabetes_readmission.executor&quot;: &quot;Run&quot;,
+    &quot;Python.domain_generalization_cat_dog (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.domain_generalization_cat_dog.executor&quot;: &quot;Run&quot;,
+    &quot;Python.engine (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.engine.executor&quot;: &quot;Run&quot;,
+    &quot;Python.evaluate_ood.executor&quot;: &quot;Run&quot;,
+    &quot;Python.evaluation (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.evaluation (2).executor&quot;: &quot;Run&quot;,
+    &quot;Python.evaluation.executor&quot;: &quot;Run&quot;,
+    &quot;Python.experiment.executor&quot;: &quot;Run&quot;,
+    &quot;Python.generate_full_MetaShift.executor&quot;: &quot;Run&quot;,
+    &quot;Python.generate_repre.executor&quot;: &quot;Run&quot;,
+    &quot;Python.helper_functions.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.model_builder (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.model_builder.executor&quot;: &quot;Run&quot;,
+    &quot;Python.one_train_cancer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.plot.executor&quot;: &quot;Run&quot;,
+    &quot;Python.run_expt.executor&quot;: &quot;Run&quot;,
+    &quot;Python.subpopulation_shift_cat_dog_indoor_outdoor.executor&quot;: &quot;Run&quot;,
+    &quot;Python.temp.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.train (2).executor&quot;: &quot;Run&quot;,
+    &quot;Python.train (3).executor&quot;: &quot;Run&quot;,
+    &quot;Python.train.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_cancer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_cancer2.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_cancer_ipgp.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_cifar.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_cifar_sngp.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_due_new.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_due_new_cancer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_due_new_cifar (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_due_new_cifar.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_due_new_cifar_sngp.executor&quot;: &quot;Run&quot;,
+    &quot;Python.two_gou_accelerator.executor&quot;: &quot;Run&quot;,
+    &quot;Python.utils.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowPanel.toolwindow.highlight.mappings&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowPanel.toolwindow.highlight.symlinks&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowPanel.toolwindow.show.date&quot;: &quot;false&quot;,
+    &quot;WebServerToolWindowPanel.toolwindow.show.permissions&quot;: &quot;false&quot;,
+    &quot;WebServerToolWindowPanel.toolwindow.show.size&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/eric/Github-projects /UI/No_image&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;two.files.diff.last.used.file&quot;: &quot;/Users/eric/Github-projects /DUE/train_cancer2.py&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/No_image" />
@@ -313,10 +300,11 @@
     </configuration>
     <list>
       <item itemvalue="Python.engine" />
-      <item itemvalue="Python.train (2)" />
-      <item itemvalue="Python.train (3)" />
       <item itemvalue="Python.evaluation (2)" />
       <item itemvalue="Python.train (1)" />
+      <item itemvalue="Python.train (2)" />
+      <item itemvalue="Python.train (3)" />
+      <item itemvalue="Python.train" />
     </list>
     <recent_temporary>
       <list>
@@ -566,7 +554,7 @@
       <workItem from="1739156183306" duration="15000" />
       <workItem from="1739156243483" duration="4014000" />
       <workItem from="1739170244090" duration="1612000" />
-      <workItem from="1739174256756" duration="14952000" />
+      <workItem from="1739174256756" duration="16059000" />
     </task>
     <servers />
   </component>
