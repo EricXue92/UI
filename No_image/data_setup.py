@@ -1,4 +1,5 @@
 import torch
+import os
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
@@ -6,11 +7,28 @@ from torch.utils.data import DataLoader, TensorDataset
 import pandas as pd
 pd.set_option('display.max_columns', None)
 
+# Find the absolute path to the UI directory.
+# os.path.dirname(__file__) gets the directory of the current file (data_setup.py)
+# os.path.abspath(...) converts to an absolute path
+# os.path.join(..., "..") goes up one level to the UI directory
+
+ui_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+# Now construct paths relative to the UI directory.
+
+
+
+
 def create_dataloaders():
+
     batch_size, Frac = 512, 0.1
     seed = 12
+
     X_train = pd.read_csv('Diabetes-Data-Shift/X_train.csv').sample(frac=Frac, random_state=seed)
     y_train = pd.read_csv('Diabetes-Data-Shift/y_train.csv').sample(frac=Frac, random_state=seed)
+
+
 
     # Train-validation split
     # train: (87230, 142)
@@ -69,7 +87,7 @@ def create_dataloaders():
     val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
     test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
     shift_dataset = TensorDataset(X_shift_tensor, y_shift_tensor)
-    ood_dataset = TensorDataset(OOD_tensor, torch.zeros(OOD_tensor.shape[0], dtype=torch.float32))  # Dummy labels for OOD
+    ood_dataset = TensorDataset(OOD_tensor, torch.ones(OOD_tensor.shape[0], dtype=torch.float32))  # Dummy labels for OOD
 
     # Create DataLoaders
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)

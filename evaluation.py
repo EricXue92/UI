@@ -5,6 +5,8 @@ from collections import defaultdict
 import data_setup, model_builder, utils, train
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_curve
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 seed = utils.set_seed(42)
@@ -97,6 +99,8 @@ def get_all_hiddens(dataset=test_loader):
 #             uncertainties.append(uncertainty)
 #     uncertainties = torch.cat(uncertainties, dim=0)
 #     return uncertainties
+
+
 
 # Only need to get the SNGP uncertainty, dropout and deep ensemble are already done
 def get_sngp_uncertainty(model=sngp_model, dataset=test_loader, return_correctness=False):
@@ -236,14 +240,72 @@ def uncertainty_thershold(model, data_loader):
     print(f"Slide uncertainty: {slide_uq}, quantile of low uncertainty: {np.mean(uncertainties<=slide_uq)}")
     return slide_uq
 
+def uncertainty_thershold(model, data_loader):
+    uncertainties, correctness = get_sngp_uncertainty(model, data_loader, True)
+    uncertainties = uncertainties.cpu().numpy()
+    correctness =  correctness.cpu().numpy()
+
+    s_fpr, s_tpr, s_thresh  = roc_curve(correctness, uncertainties)
+
+    print(f"s_fpr: {len(s_fpr)}, s_tpr: {len(s_tpr)}, s_thresh: {len(s_thresh)}")
+
+    J_index = s_tpr - s_fpr
+    print(f"J_index:  {J_index}")
+
+
+    max_j = max( zip(s_tpr, s_fpr), key=lambda x: x[0] - x[1] )
+    slide_uq = s_thresh[list(zip(s_tpr, s_fpr)).index(max_j)]
+    print(f"Slide uncertainty: {slide_uq}, quantile of low uncertainty: {np.mean(uncertainties<=slide_uq)}")
+    return slide_uq, uncertainties, correctness, J_index
+
+def plot_youden_j(uncertainties, correctness, J_index):
+    if len(uncertainties) != len(correctness):
+        raise ValueError("Uncertainties and correctness arrays must have the same length.")
+
+    # Separate uncertainties based on correctness
+    correct_uq = uncertainties[correctness == 1]
+    incorrect_uq = uncertainties[correctness == 0]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    kde_correct = gaussian_kde(correct_uq)
+    x_correct = np.linspace(min(uncertainties), max(uncertainties), 200)  # Use overall min/max
+    y_correct = kde_correct(x_correct)
+    ax.plot(x_correct, y_correct, color='darkgreen', label='Correct')
+    ax.fill_between(x_correct, y_correct, color='lightgreen', alpha=0.5)
+
+    kde_incorrect = gaussian_kde(incorrect_uq)
+    x_incorrect = np.linspace(min(uncertainties), max(uncertainties), 200)  # Use overall min/max
+    y_incorrect = kde_incorrect(x_incorrect)
+    ax.plot(x_incorrect, y_incorrect, color='saddlebrown', label='Incorrect')
+    ax.fill_between(x_incorrect, y_incorrect, color='peru', alpha=0.5)
+
+    kde_j = gaussian_kde(J_index)
+    x_J = np.linspace(min(J_index), max(J_index))  # Use overall min/max
+    y_J = kde_j(x_J)
+    ax.plot(x_J, y_J, color='black', label='J Index')
+
+
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_ylim(0)  # Start y-axis at 0
+    ax.set_xlim(min(uncertainties), max(uncertainties)) # consistent x limits
+    plt.tight_layout()
+    plt.show()
+
+
+
 
 def main():
     # get_mc_results()
-    get_all_shift_acc()
+    # get_all_shift_acc()
     # get_all_corrs()
 
-    # Uq_threshold = uncertainty_thershold(sngp_model, test_loader)
-    #
+    slide_uq, uncertainties, correctness, J_index  = uncertainty_thershold(sngp_model, test_loader)
+    plot_youden_j(uncertainties, correctness, J_index)
+
+
     # sngp_uq = []
     # data_loaders = [test_loader, shift_loader, ood_loader]
     #
