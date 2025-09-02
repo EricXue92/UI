@@ -1,0 +1,2 @@
+mode,data_type,nll,brier,ece
+mc_dropout,normal,0.0328,0.0143,0.0023

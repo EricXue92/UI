@@ -3,16 +3,16 @@ import time
 from tqdm.auto import tqdm
 import torch.nn as nn
 
+from added_metrics import negative_log_likelihood, brier_score, expected_calibration_error
+
 def train_step(model, dataloader, loss_fn, optimizer, device):
     model.train()
     total_loss, total_acc = 0, 0
     kwargs = {}
-
     if not isinstance(model.classifier, nn.Linear):
         model.classifier.reset_covariance_matrix()
         kwargs = {'return_random_features': False, 'return_covariance': False,
                   'update_precision_matrix': True, 'update_covariance_matrix': False}
-
     for X, y in dataloader:
         X, y = X.to(device), y.to(device)
         optimizer.zero_grad()
@@ -20,7 +20,6 @@ def train_step(model, dataloader, loss_fn, optimizer, device):
         loss = loss_fn(y_pred, y)
         loss.backward()
         optimizer.step()
-
         total_loss += loss.item()
         total_acc += (y_pred.argmax(dim=1) == y).float().mean().item()
     avg_loss = total_loss / len(dataloader)
@@ -32,16 +31,20 @@ def test_step(model, dataloader, loss_fn, device):
     model.eval()
     total_loss, total_acc = 0, 0
     eval_kwargs = {}
-
     if not isinstance(model.classifier, nn.Linear):
         model.classifier.update_covariance_matrix()
         eval_kwargs = {'return_random_features': False, 'return_covariance': False,
                        'update_precision_matrix': False, 'update_covariance_matrix': False}
-
+    ### new added evaluation metrics
+    logits_list, labels_list = [], []
     with torch.no_grad():
         for X,y in dataloader:
             X, y = X.to(device), y.to(device)
             logits = model(X, return_hidden=False, **eval_kwargs)
+            ### new added evaluation metrics
+            logits_list.append(logits.cpu())
+            labels_list.append(y.cpu())
+
             loss = loss_fn(logits, y)
             total_loss += loss.item()
             total_acc += (logits.argmax(dim=1) == y).float().mean().item()
@@ -49,6 +52,24 @@ def test_step(model, dataloader, loss_fn, device):
     avg_loss = total_loss / len(dataloader)
     avg_acc = total_acc / len(dataloader)
     print(f"Test Loss: {avg_loss:.4f} | Test Accuracy: {avg_acc * 100:.2f}%\n")
+    logits = torch.cat(logits_list, dim=0)
+    labels = torch.cat(labels_list, dim=0)
+
+    ### new added evaluation metrics
+    # convert logits → probabilities
+    if logits.ndim == 1 or logits.size(1) == 1:
+        probs = torch.sigmoid(logits).view(-1)
+    else:
+        probs = torch.softmax(logits, dim=1)
+
+    # print(f"labels shape: {labels.shape}, probs shape: {probs.shape}")
+    # compute NLL, Brier score, ECE
+    # exit()
+    #
+    # nll = negative_log_likelihood(labels, probs)
+    # brier = brier_score(labels, probs)
+    # ece = expected_calibration_error(probs, labels)
+    # print(f"Test NLL: {nll:.4f} | Test Brier Score: {brier:.4f} | Test ECE: {ece:.4f}")
     return avg_loss, avg_acc
 
 def train(model, train_dataloader, test_dataloader, optimizer, loss_fn, epochs, device):
@@ -59,6 +80,7 @@ def train(model, train_dataloader, test_dataloader, optimizer, loss_fn, epochs, 
     for epoch in tqdm(range(epochs)):
         train_loss, train_acc = train_step(model, train_dataloader, loss_fn, optimizer, device)
         test_loss, test_acc = test_step(model, test_dataloader, loss_fn, device)
+
         results["train_loss"].append(train_loss)
         results["train_acc"].append(train_acc)
         results["test_loss"].append(test_loss)
@@ -80,7 +102,6 @@ def train_model(model, train_loader, loss_fn, optimizer, epochs, device):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
     return model
 
 

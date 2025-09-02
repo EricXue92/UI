@@ -1,0 +1,2 @@
+mode,data_type,nll,brier,ece
+sngp,normal,0.0285,0.0144,0.0026

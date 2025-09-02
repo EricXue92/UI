@@ -67,12 +67,9 @@ def get_ood_mnist():
 def get_all_test_dataloaders(batch_size, rotate_degs, roll_pixels):
     _, test_data = get_train_test_mnist()
     shift_data = get_shifted_mnist(rotate_degs=rotate_degs, roll_pixels=roll_pixels)
-
     ood_data = get_ood_mnist()
     test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False, drop_last=True) #
-
     shift_loader = DataLoader(shift_data , batch_size=batch_size, shuffle=False, drop_last=True)
-
     ood_loader = DataLoader(ood_data, batch_size=batch_size, shuffle=False, drop_last=True)
     return test_loader, shift_loader, ood_loader
 
