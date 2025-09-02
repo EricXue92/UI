@@ -1,0 +1,19 @@
+# macOS system files
+.DS_Store
+
+# PyCharm / IntelliJ project settings
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Large datasets
+*.csv
+*.tsv
+*.json
+*.h5
+
+# Model weights / checkpoints
+*.pt
+*.pth
