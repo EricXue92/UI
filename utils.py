@@ -34,7 +34,7 @@ def save_model(model, target_dir, model_name, overwrite=False):
 
 def save_results_to_csv(results, result_file_path):
     os.makedirs(os.path.dirname(result_file_path), exist_ok=True)
-    results = {key: (value.cpu().numpy() if isinstance(value, torch.Tensor) else value if isinstance(value, (list, pd.Series)) else [value])
+    results = {key: (value.cpu().numpy() if isinstance(value, torch.Tensor) else value if isinstance(value, (list, pd.Series) ) else [value])
                for key, value in results.items() }
     df = pd.DataFrame(results)
 
@@ -201,7 +201,7 @@ def plot_predictive_uncertainty(test_var_sngp, shift_var_sngp, OOD_var_sngp, Uq_
     plt.show()
     plt.close()
 
-def save_append_results(results, csv_path):
+def save_append_metric_results(results, csv_path):
     csv_path = Path(csv_path)
     os.makedirs(csv_path.parent, exist_ok=True)
 

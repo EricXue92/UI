@@ -11,12 +11,14 @@ from sklearn.metrics import roc_curve
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import torch.nn.functional as F
+import random
 
 from added_metrics import negative_log_likelihood, brier_score, expected_calibration_error
-from utils import save_append_results
+from utils import save_append_metric_results
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 seed = utils.set_seed(42)
+# seed = utils.set_seed(23)
 
 train_data, test_data = data_setup.get_train_test_mnist()
 train_loader = DataLoader(train_data, batch_size=512, shuffle=True, drop_last=True) # 938
@@ -26,12 +28,12 @@ ROTATE_DEGS, ROLL_PIXELS = 2, 4
 test_loader, shift_loader, ood_loader = data_setup.get_all_test_dataloaders(batch_size=1024, rotate_degs=ROTATE_DEGS, roll_pixels=ROLL_PIXELS) # 4
 
 
-def load_model(model_path="models/normal_model.pth"):
+def load_model(model_path="checkpoints/normal_model_*.pth"):
     model = model_builder.Build_MNISTClassifier(10)
     model.load_state_dict(torch.load(model_path))
     return model
 
-def load_sngp_model(model_path="models/sngp_model.pth"):
+def load_sngp_model(model_path="models/sngp_model_*.pth"):
     sngp_model = model_builder.Build_SNGP_MNISTClassifier(10)
     print(f"Loading SNGP model from {model_path}")
     sngp_model.load_state_dict(torch.load(model_path))
@@ -48,11 +50,10 @@ def load_ensemble(model_path="models/ensemble_model_*.pth"):
 
 # Load the pre-trained models
 # model = load_model().to(device)
-ensemble_models = load_ensemble()
-sngp_model = load_sngp_model().to(device)
-sngp_model.classifier.update_covariance_matrix()
-sngp_ensemble_models = [load_sngp_model(f"models/sngp_model_{i}.pth").to(device) for i in range(5)]
-
+# ensemble_models = load_ensemble()
+# sngp_model = load_sngp_model().to(device)
+# sngp_model.classifier.update_covariance_matrix()
+# sngp_ensemble_models = [load_sngp_model(f"models/sngp_model_{i}.pth").to(device) for i in range(5) ]
 
 # Function to calculate the accuracy of a model on a given dataset
 def shift_acc(model, data_loader):
@@ -121,7 +122,7 @@ def get_all_hiddens(dataset=test_loader):
 #     return uncertainties
 
 # Only need to get the SNGP uncertainty, dropout and deep ensemble are already done
-def get_sngp_uncertainty(model=sngp_model, dataset=test_loader, return_correctness=False):
+def get_sngp_uncertainty(model, dataset=test_loader, return_correctness=False):
     uncertainties, correctness = [], []
     kwargs = {'return_random_features': False, 'return_covariance': True,
               'update_precision_matrix': False, 'update_covariance_matrix': False}
@@ -293,54 +294,68 @@ def plot_youden_j(uncertainties, correctness, J_index):
     plt.show()
 
 
-def evaluate_metrics(model, dataloader, device, n_bins=15, mc_samples=5, mode="vanilla", data_type="normal"):
-    assert mode in {"vanilla", "mc_dropout", "sngp"}
+# For calculating metrics (nll, brier, and ece) for a single model (vanilla or sngp)
+def evaluate_metrics(model, dataloader, device, n_bins, mode="vanilla", data_type="normal"):
+    assert mode in {"vanilla", "mc_dropout", "sngp", "sngp_dropout"}
     if mode == "vanilla" or mode == "sngp":
         model.eval()
-    elif mode == "mc_dropout":
+    elif mode == "mc_dropout" or mode == "sngp_dropout":
         model.train()
     else:
         print(f"Invalid mode: {mode}. Choose 'vanilla' or 'mc_dropout'.")
-
     logits_list, probs_list, labels_list = [], [], []
+
     with torch.no_grad():
-        for X, y in dataloader:
+        for X,y in dataloader:
             X, y = X.to(device), y.to(device)
 
             if mode == "vanilla" or mode == "sngp":
                 logits = model(X, return_hidden=False)
+                probs = torch.softmax(logits, dim=1)
                 logits_list.append(logits.cpu())
-                # convert logits → probabilities
-                if logits.ndim == 1 or logits.size(1) == 1:
-                    probs = torch.sigmoid(logits).view(-1)
-                else:
-                    probs = torch.softmax(logits, dim=1)
                 probs_list.append(probs.cpu())
 
             elif mode == "mc_dropout":
-                # accumulate probabilities (not logits) to avoid overflow
                 probs_accum = None
-                for _ in range(mc_samples):
+                for _ in range(5):
                     logits_mc = model(X, return_hidden=False)
                     if logits_mc.ndim == 1 or logits_mc.size(1) == 1:
                         probs_mc = torch.sigmoid(logits_mc).view(-1, 1)  # (N,1)
                     else:
                         probs_mc = F.softmax(logits_mc, dim=1)  # (N,K)
                     probs_accum = probs_mc if probs_accum is None else probs_accum + probs_mc
-                probs_mean = probs_accum / mc_samples  # predictive p
+                probs_mean = probs_accum / 5  # predictive p
                 probs_list.append(probs_mean.cpu())
-                # For NLL we still need logits or p(correct).  The most numerically
-                # stable way:  −log p̄_y  where p̄_y is the mean prob assigned to the
-                # true class.
+
                 if probs_mean.ndim == 1 or probs_mean.size(1) == 1:  # binary
                     p_correct = probs_mean.view(-1).gather(0, y)
                 else:
                     p_correct = probs_mean.gather(1, y.unsqueeze(1)).squeeze(1)
-                logits_list.append(torch.log(p_correct + 1e-15).unsqueeze(1).cpu())  # fake logits = log p̄
+                logits_list.append(torch.log(p_correct + 1e-15).unsqueeze(1).cpu())
 
+            elif mode == "sngp_dropout":
+                probs_accum = None
+                for _ in range(5):
+                    logits_mc = model(X, return_hidden=False)
+                    if logits_mc.ndim == 1 or logits_mc.size(1) == 1:
+                        probs_mc = torch.sigmoid(logits_mc).view(-1, 1)
+                    else:
+                        probs_mc = F.softmax(logits_mc, dim=1)
+                    probs_accum = probs_mc if probs_accum is None else probs_accum + probs_mc
+                probs_mean = probs_accum / 5
+                probs_list.append(probs_mean.cpu())
+                if probs_mean.ndim == 1 or probs_mean.size(1) == 1:
+                    p_correct = probs_mean.view(-1).gather(0, y)
+                else:
+                    p_correct = probs_mean.gather(1, y.unsqueeze(1)).squeeze(1)
+                logits_list.append(torch.log(p_correct + 1e-15).unsqueeze(1).cpu())
             else:
                 print(f"Invalid mode: {mode}")
+
             labels_list.append(y.cpu())
+
+    # For NLL we still need logits or p(correct). The most numerically
+    # stable way:  −log p̄_y  where p̄_y is the mean prob assigned to the true class.
 
     logits = torch.cat(logits_list, dim=0)
     probs = torch.cat(probs_list, dim=0)
@@ -349,121 +364,223 @@ def evaluate_metrics(model, dataloader, device, n_bins=15, mc_samples=5, mode="v
     # Negative log-likelihood
     if mode == "vanilla" or mode == "sngp":
         nll = negative_log_likelihood(logits, labels)
-    elif mode == "mc_dropout":
+    elif mode == "mc_dropout" or mode == "sngp_dropout":
         # already have log p̄_y stored in logits (see above)
         nll = -logits.squeeze().mean().item()
     else:
         print(f"Invalid mode: {mode}")
 
+    # Metrics
     brier = brier_score(probs, labels)
+    # ece = adaptive_calibration_error(probs, labels, n_bins)
     ece = expected_calibration_error(probs, labels, n_bins)
-
+    print(n_bins)
     print(f"{mode} | {data_type} | NLL: {nll:.4f} | Brier: {brier:.4f} | ECE: {ece:.4f}")
-
-    results ={
+    results = {
         "mode": mode,
         "data_type": data_type,
         "nll": round(nll, 4),
         "brier": round(brier, 4),
         "ece": round(ece, 4)
     }
-    result_file_path = Path(f"results/ensemble_{mode}_{data_type}_metrics.csv")
-    save_append_results(results, result_file_path)
+    result_file_path = Path(f"results/{mode}_{data_type}_metrics.csv")
+    save_append_metric_results(results, result_file_path)
     print(f"Results saved to {result_file_path}")
-    # utils.save_results_to_csv(results, result_file_path)
+
     return nll, brier, ece
 
-def evaluate_ensemble(ensemble_models, dataloader, device, n_bins=15, type="sngp", data_type="normal"):
-    logits_list, probs_list, labels_list = [], [], []
-    n = len(ensemble_models)
-    print(f"Evaluating {n} ensemble models.")
 
+# simple model to compute 10 times and report mean ± std (finished)
+def evaluate_multiple_models(model_class, dataloader, device, n_models=10, n_bins=10, mode="vanilla", data_type="normal"):
+    nlls, briers, eces = [], [], []
+    for i in range(n_models):
+        if mode == "vanilla" or mode == "mc_dropout" :
+            ckpt_path = Path(f"checkpoints/normal_model_{i}.pth")
+        elif mode == "sngp" or mode == "sngp_dropout":
+            ckpt_path = Path(f"checkpoints/sngp_model_{i}.pth")
+        else:
+            raise ValueError("Invalid mode. Choose 'vanilla' or 'sngp'.")
+
+        print(f"\n[INFO] Loading checkpoint: {ckpt_path}")
+        # load model
+        model = model_class().to(device)
+        state_dict = torch.load(ckpt_path, map_location=device)
+        model.load_state_dict(state_dict)
+        model.to(device)
+
+        nll, brier, ece = evaluate_metrics(model, dataloader, device, n_bins=n_bins, mode=mode, data_type=data_type)
+        nlls.append(nll)
+        briers.append(brier)
+        eces.append(ece)
+
+    nlls = torch.tensor(nlls, dtype=torch.float32)
+    briers = torch.tensor(briers, dtype=torch.float32)
+    eces = torch.tensor(eces, dtype=torch.float32)
+
+    nlls_mean, nlls_var = torch.mean(nlls).item(), nlls.var(unbiased=False).item()
+    briers_mean, briers_var = torch.mean(briers).item(), torch.var(briers, unbiased=False).item()
+    eces_mean, eces_var = torch.mean(eces).item(), torch.var(eces, unbiased=False).item()
+
+    # convert to std
+    nlls_std = nlls_var ** 0.5
+    briers_std = briers_var ** 0.5
+    eces_std = eces_var ** 0.5
+
+    results = {
+        "mode": "sngp",
+        "data_type": data_type,
+        "nll": f"{nlls_mean:.4f} ± {nlls_std:.4f}",
+        "brier": f"{briers_mean:.4f} ± {briers_std:.4f}",
+        "ece": f"{eces_mean:.4f} ± {eces_std:.4f}"
+    }
+    result_file_path = Path(f"results/{mode}_{data_type}_metrics.csv")
+    print(f"Results saved to {result_file_path}")
+    save_append_metric_results(results, result_file_path)
+    return
+
+
+def evaluate_bootstrapped_ensemble(model_class, dataloader, device, n_ensembles=5, mode="vanilla",
+                                   ensemble_size=10, pool_size=20, n_bins=10, data_type="normal" ):
+    nlls, briers, eces = [], [], []
+    if mode == "vanilla" :
+        model_paths = [Path(f"checkpoints/normal_model_{i}.pth") for i in range(pool_size)]
+    elif mode == "sngp":
+        model_paths = [Path(f"checkpoints/sngp_model_{i}.pth") for i in range(pool_size)]
+    else:
+        raise ValueError("Invalid mode. Choose 'vanilla' or 'sngp'.")
+
+    for i in range(n_ensembles):
+        print(f"\n[INFO] Evaluating bootstrapped ensemble {i + 1}/{n_ensembles}")
+        chosen_paths = random.choices(model_paths, k=ensemble_size)
+        print(f"Selected models: {[p.name for p in chosen_paths]}")
+
+        ensemble_models = []
+        for ckpt_path in chosen_paths:
+            model = model_class().to(device)
+            state_dict = torch.load(ckpt_path, map_location=device)
+            model.load_state_dict(state_dict)
+            model.to(device)
+            model.eval()
+            ensemble_models.append(model)
+
+        # evaluate this ensemble
+        nll, brier, ece = evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins=n_bins)
+        nlls.append(nll)
+        briers.append(brier)
+        eces.append(ece)
+
+    nll_list = torch.tensor(nlls, dtype=torch.float32)
+    brier_list = torch.tensor(briers, dtype=torch.float32)
+    ece_list = torch.tensor(eces, dtype=torch.float32)
+
+    # mean and std
+    nll_mean, nll_std = nll_list.mean().item(), nll_list.std(unbiased=False).item()
+    brier_mean, brier_std = brier_list.mean().item(), brier_list.std(unbiased=False).item()
+    ece_mean, ece_std = ece_list.mean().item(), ece_list.std(unbiased=False).item()
+    results = {
+        "mode": "bootstrapped_ensemble",
+        "data_type": data_type,
+        "nll": f"{nll_mean:.4f} ± {nll_std:.4f}",
+        "brier": f"{brier_mean:.4f} ± {brier_std:.4f}",
+        "ece": f"{ece_mean:.4f} ± {ece_std:.4f}"
+    }
+    result_file_path = Path(f"results/bootstrapped_ensemble_{mode}_{data_type}_metrics.csv")
+    print(f"Results saved to {result_file_path}")
+    save_append_metric_results(results, result_file_path)
+    return results
+
+# def evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins=15):
+#     logits_list, probs_list, labels_list = [], [], []
+#     n = len(ensemble_models)
+#     print(f"Evaluating {n} ensemble models.")
+#
+#     with torch.no_grad():
+#         for X, y in dataloader:
+#             X, y = X.to(device), y.to(device)
+#             probs_accum = None
+#
+#             for model in ensemble_models:
+#                 logits = model(X, return_hidden=False)
+#                 if logits.ndim == 1 or logits.size(1) == 1: # binary
+#                     probs = torch.sigmoid(logits).view(-1,1)
+#                 else:
+#                     probs = F.softmax(logits, dim=1)
+#                 probs_accum = probs if probs_accum is None else probs_accum + probs
+#
+#             probs_mean = probs_accum / n
+#             probs_list.append(probs_mean.cpu())
+#             if probs_mean.ndim == 1 or probs_mean.size(1) == 1:  # binary
+#                 p_correct = probs_mean.view(-1).gather(0, y)
+#             else:
+#                 p_correct = probs_mean.gather(1, y.unsqueeze(1)).squeeze(1)
+#
+#             logits_list.append(torch.log(p_correct + 1e-15).unsqueeze(1).cpu())
+#             labels_list.append(y.cpu())
+#
+#     logits = torch.cat(logits_list, dim=0)
+#     probs = torch.cat(probs_list, dim=0)
+#     labels = torch.cat(labels_list, dim=0)
+#
+#     nll = -logits.squeeze().mean().item()
+#     brier = brier_score(probs, labels)
+#
+#     ece = expected_calibration_error(probs, labels, n_bins)
+#     # ece = adaptive_calibration_error(probs, labels, n_bins)
+#     return round(nll, 4), round(brier, 4), round(ece, 4)
+
+def evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins=15):
+    all_probs, all_labels, nll_sum = [], [], 0.0
+    n_samples = 0
+    n = len(ensemble_models)
+    per_model_probs = [[] for _ in range(n)]
+    print(f"Evaluating {n} ensemble models.")
     with torch.no_grad():
         for X, y in dataloader:
             X, y = X.to(device), y.to(device)
             probs_accum = None
-            for model in ensemble_models:
+            for j, model in enumerate(ensemble_models):
                 logits = model(X, return_hidden=False)
-                if logits.ndim == 1 or logits.size(1) == 1:
+                if logits.ndim == 1 or logits.size(1) == 1: # binary
                     probs = torch.sigmoid(logits).view(-1,1)
+                    probs_j = torch.stack([1.0 - probs, probs], dim=1)
                 else:
                     probs = F.softmax(logits, dim=1)
+                    probs_j = F.softmax(logits, dim=1)
+                    # Save per-model probs (on CPU)
+                per_model_probs[j].append(probs_j.detach().cpu())
                 probs_accum = probs if probs_accum is None else probs_accum + probs
             probs_mean = probs_accum / n
-            probs_list.append(probs_mean.cpu())
+            all_probs.append(probs_mean.cpu())
+            all_labels.append(y.cpu())
 
-            if probs_mean.ndim == 1 or probs_mean.size(1) == 1:  # binary
-                p_correct = probs_mean.view(-1).gather(0, y)
+            # calculate nll for the batch
+            if probs_mean.size(1) == 1:
+                p_true = torch.where(y==1, probs_mean.squeeze(), 1 - probs_mean.squeeze())
             else:
-                p_correct = probs_mean.gather(1, y.unsqueeze(1)).squeeze(1)
+                p_true = probs_mean.gather(1, y.unsqueeze(1)).squeeze(1)
 
-            logits_list.append(torch.log(p_correct + 1e-15).unsqueeze(1).cpu())
-            labels_list.append(y.cpu())
+            nll_sum += -torch.log(p_true + 1e-15).sum().item()
+            n_samples += y.size(0)
 
-    logits = torch.cat(logits_list, dim=0)
-    probs = torch.cat(probs_list, dim=0)
-    labels = torch.cat(labels_list, dim=0)
+    probs = torch.cat(all_probs, dim=0)
+    labels = torch.cat(all_labels, dim=0)
+    per_model_probs = [torch.cat(lst, dim=0) for lst in per_model_probs]
 
-    nll = -logits.squeeze().mean().item()
+    nll = nll_sum / n_samples
     brier = brier_score(probs, labels)
-    ece = expected_calibration_error(probs, labels, n_bins)
-    print(f"Ensemble | NLL: {nll:.4f} | Brier: {brier:.4f} | ECE: {ece:.4f}")
-    results = {
-        "mode": "ensemble",
-        "data_type": data_type,
-        "nll": round(nll, 4),
-        "brier": round(brier, 4),
-        "ece": round(ece, 4)
-    }
-    filepath= f"results/ensemble_{type}_{data_type}_metrics.csv"
-    result_file_path = Path(filepath)
-    utils.save_results_to_csv(results, result_file_path)
-    return round(nll, 4), round(brier, 4), round(ece, 4)
+
+    member_eces = [expected_calibration_error(pm, labels, n_bins) for pm in per_model_probs]
+    ece_members_avg = sum(member_eces) / len(member_eces)
+    ece_ens_mean = expected_calibration_error(probs, labels, n_bins)
+    print(f"Ensemble ECE: {ece_ens_mean:.4f} | Members' avg ECE: {ece_members_avg:.4f}")
+    return round(nll, 4), round(brier, 4), round(ece_members_avg, 4)
 
 
 
-# def evaluate_ensemble(ensemble_models, dataloader, device, n_bins=15, data_type="normal"):
-#     n = len(ensemble_models)
-#     probs_list, labels_list = [], []
-#     for X,y in dataloader:
-#         X, y = X.to(device), y.to(device)
-#         # predictive probabilities
-#         p_sum = None
-#         for model in ensemble_models:
-#             logits = model(X, return_hidden=False)
-#             p_i = torch.sigmoid(logits).view(-1, 1) if logits.size(-1) == 1 \
-#                 else F.softmax(logits, dim=1)
-#             p_sum = p_i if p_sum is None else p_sum + p_i
-#         p_bar = p_sum / n  # predictive p̄
-#
-#         probs_list.append(p_bar)
-#         labels_list.append(y)
-#
-#     probs = torch.cat(probs_list, dim=0)
-#     labels = torch.cat(labels_list, dim=0)
-#
-#     if probs.ndim == 1 or probs.size(1) == 1:  # binary
-#         p_correct = torch.where(labels == 1, probs, 1. - probs)
-#     else:  # multi-class
-#         p_correct = probs[torch.arange(labels.numel(), device=device), labels]
-#
-#     nll = (-torch.log(p_correct.clamp_min(1e-15))).mean().item()  # scalar ↩︎ CPU
-#     brier = brier_score(probs, labels)
-#     ece = expected_calibration_error(probs, labels, n_bins)
-#     results = {
-#         "mode": "ensemble",
-#         "data_type": data_type,
-#         "nll": round(nll, 4),
-#         "brier": round(brier, 4),
-#         "ece": round(ece, 4)
-#     }
-#     result_file_path = Path("results/ensemble_metrics.csv")
-#     utils.save_results_to_csv(results, result_file_path)
-#     print(f"Ensemble | NLL: {nll:.4f} | Brier: {brier:.4f} | ECE: {ece:.4f}")
-#     return round(nll, 4), round(brier, 4), round(ece, 4)
 
 
 def main():
+
     # get_mc_results()
     # get_all_shift_acc()
     # get_all_corrs()
@@ -475,17 +592,51 @@ def main():
     # data_loaders = [test_loader, shift_loxader]
     # "vanilla"
 
-    # sngp ensemble
-    # evaluate_ensemble(sngp_ensemble_models, test_loader, device, n_bins=15, type="sngp", data_type="normal")
-    # evaluate_ensemble(sngp_ensemble_models, shift_loader, device, n_bins=15, type="sngp", data_type="shift")
 
-    # sngp single model
-    # evaluate_metrics(sngp_model, test_loader , device, n_bins=15, mc_samples=5, mode="sngp",data_type="normal")
-    # evaluate_metrics(sngp_model, shift_loader, device, n_bins=15, mc_samples=5, mode="sngp", data_type="shift")
+    model_class = lambda: model_builder.Build_MNISTClassifier(10)
+    sngp_class = lambda: model_builder.Build_SNGP_MNISTClassifier(num_classes=10, coeff=1.0)
 
-    # ensemble models
-    evaluate_ensemble(ensemble_models, test_loader, device, n_bins=15, type="vanilla", data_type="normal")
-    evaluate_ensemble(ensemble_models, shift_loader, device, n_bins=15, type="shift", data_type="normal")
+
+    # # # 10 single models
+    evaluate_multiple_models(model_class, test_loader, device, n_models=5,
+                             n_bins=15, mode="vanilla", data_type="normal")
+    evaluate_multiple_models(model_class, shift_loader, device, n_models=5,
+                             n_bins=15,mode="vanilla", data_type="shift")
+
+    # 10 sngp single models
+    evaluate_multiple_models(sngp_class, test_loader, device, n_models=5,
+                             n_bins=15, mode="sngp", data_type="normal")
+    evaluate_multiple_models(sngp_class, shift_loader, device, n_models=5,
+                             n_bins=15,mode="sngp", data_type="shift")
+    #
+    # # # 10 mc dropout single models
+    evaluate_multiple_models(model_class, test_loader, device, n_models=5,
+                             n_bins=15, mode="mc_dropout", data_type="normal")
+    evaluate_multiple_models(model_class, shift_loader, device, n_models=5,
+                             n_bins=15, mode="mc_dropout", data_type="shift")
+
+    # 10 sngp + dropout single models
+    evaluate_multiple_models(sngp_class, test_loader, device, n_models=5,
+                             n_bins=15,mode="sngp_dropout", data_type="normal")
+    evaluate_multiple_models(sngp_class, shift_loader, device, n_models=5,
+                             n_bins=15,mode="sngp_dropout", data_type="shift")
+
+
+    # bootstrapped ensemble for vinillia
+    evaluate_bootstrapped_ensemble(model_class, test_loader, device, n_ensembles=5,
+                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
+
+    evaluate_bootstrapped_ensemble(model_class, shift_loader, device, n_ensembles=5,
+                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
+
+    ## bootstrapped ensemble for sngp
+    evaluate_bootstrapped_ensemble(sngp_class, test_loader, device, n_ensembles=5, mode="sngp",
+                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
+
+    evaluate_bootstrapped_ensemble(sngp_class, shift_loader, device, n_ensembles=5, mode="sngp",
+                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
+
+
 
     # # for dataloader in data_loaders:
     # #     uq = get_sngp_uncertainty(model=sngp_model, dataset=dataloader)

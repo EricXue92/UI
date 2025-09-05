@@ -5,14 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e2080805-2ec6-49b9-87b3-d3e764dc5d4c" name="Changes" comment="i like zxg">
-      <change afterPath="$PROJECT_DIR$/added_metrics.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/deployment.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_setup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/engine.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/added_metrics.py" beforeDir="false" afterPath="$PROJECT_DIR$/added_metrics.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/evaluation.py" beforeDir="false" afterPath="$PROJECT_DIR$/evaluation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/model_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_builder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyvarinf" beforeDir="false" afterPath="$PROJECT_DIR$/pyvarinf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/results/sngp_normal_metrics.csv" beforeDir="false" afterPath="$PROJECT_DIR$/results/sngp_normal_metrics.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/results/sngp_shift_metrics.csv" beforeDir="false" afterPath="$PROJECT_DIR$/results/sngp_shift_metrics.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
     </list>
@@ -87,6 +85,7 @@
     &quot;Python.PDF_Rename.executor&quot;: &quot;Run&quot;,
     &quot;Python.__init__.executor&quot;: &quot;Run&quot;,
     &quot;Python.added_evaluation.executor&quot;: &quot;Run&quot;,
+    &quot;Python.added_metrics.executor&quot;: &quot;Run&quot;,
     &quot;Python.brfss.executor&quot;: &quot;Run&quot;,
     &quot;Python.builder_model.executor&quot;: &quot;Run&quot;,
     &quot;Python.convnext.executor&quot;: &quot;Run&quot;,
@@ -213,29 +212,6 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="evaluation (2)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="UI" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pyvarinf" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pyvarinf/evaluation.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <configuration name="evaluation" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="UI" />
       <option name="ENV_FILES" value="" />
@@ -251,6 +227,29 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/evaluation.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="model_builder" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="UI" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/model_builder.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -283,19 +282,19 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.model_builder" />
       <item itemvalue="Python.engine" />
       <item itemvalue="Python.added_metrics" />
       <item itemvalue="Python.train (1)" />
-      <item itemvalue="Python.evaluation (2)" />
       <item itemvalue="Python.evaluation" />
     </list>
     <recent_temporary>
       <list>
         <item itemvalue="Python.evaluation" />
         <item itemvalue="Python.train (1)" />
-        <item itemvalue="Python.engine" />
+        <item itemvalue="Python.model_builder" />
         <item itemvalue="Python.added_metrics" />
-        <item itemvalue="Python.evaluation (2)" />
+        <item itemvalue="Python.engine" />
       </list>
     </recent_temporary>
   </component>
@@ -553,7 +552,9 @@
       <workItem from="1754383161501" duration="754000" />
       <workItem from="1756711897077" duration="1547000" />
       <workItem from="1756715414901" duration="14463000" />
-      <workItem from="1756778203353" duration="6789000" />
+      <workItem from="1756778203353" duration="57845000" />
+      <workItem from="1756907048818" duration="47316000" />
+      <workItem from="1757041360887" duration="17629000" />
     </task>
     <servers />
   </component>
@@ -620,15 +621,16 @@
     <SUITE FILE_PATH="coverage/UI$run_expt.coverage" NAME="run_expt Coverage Results" MODIFIED="1736133897622" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="/" />
     <SUITE FILE_PATH="coverage/DUE$train_cancer.coverage" NAME="train_cancer Coverage Results" MODIFIED="1729829117261" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DUE$train_cancer_ipgp.coverage" NAME="train_cancer_ipgp Coverage Results" MODIFIED="1729927464365" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/UI$model_builder.coverage" NAME="model_builder Coverage Results" MODIFIED="1737426457297" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/No_image" />
+    <SUITE FILE_PATH="coverage/UI$model_builder.coverage" NAME="model_builder Coverage Results" MODIFIED="1756908324455" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/UI$data_setup.coverage" NAME="data_setup Coverage Results" MODIFIED="1739257286304" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/No_image" />
     <SUITE FILE_PATH="coverage/UI$experiment.coverage" NAME="experiment Coverage Results" MODIFIED="1736153526232" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/google-research/uq_benchmark_2019/mnist" />
     <SUITE FILE_PATH="coverage/DUE$train_due_new_cifar_sngp.coverage" NAME="train_due_new_cifar_sngp Coverage Results" MODIFIED="1729141790329" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/UI$added_metrics.coverage" NAME="added_metrics Coverage Results" MODIFIED="1756889116842" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DUE$train_due_new_cifar__1_.coverage" NAME="train_due_new_cifar (1) Coverage Results" MODIFIED="1729151324356" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DUE$convnext.coverage" NAME="convnext Coverage Results" MODIFIED="1730341658085" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/due" />
     <SUITE FILE_PATH="coverage/UI$engine.coverage" NAME="engine Coverage Results" MODIFIED="1756732189686" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/UI$DeepRestNetSNGP.coverage" NAME="DeepRestNetSNGP Coverage Results" MODIFIED="1736053620049" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/No_image" />
-    <SUITE FILE_PATH="coverage/UI$train__1_.coverage" NAME="train (1) Coverage Results" MODIFIED="1756781768014" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/UI$train__1_.coverage" NAME="train (1) Coverage Results" MODIFIED="1757060854717" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DUE$builder_model.coverage" NAME="builder_model Coverage Results" MODIFIED="1733919387623" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DUE$train_cifar.coverage" NAME="train_cifar Coverage Results" MODIFIED="1729478703091" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/UI$domain_generalization_cat_dog__1_.coverage" NAME="domain_generalization_cat_dog Coverage Results" MODIFIED="1735786057387" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/MetaShift/dataset" />
@@ -644,7 +646,7 @@
     <SUITE FILE_PATH="coverage/DUE$train_due_new.coverage" NAME="train_due_new Coverage Results" MODIFIED="1727337056395" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/UI$engine__1_.coverage" NAME="engine (1) Coverage Results" MODIFIED="1736862786633" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/No_image" />
     <SUITE FILE_PATH="coverage/UI$subpopulation_shift_cat_dog_indoor_outdoor.coverage" NAME="subpopulation_shift_cat_dog_indoor_outdoor Coverage Results" MODIFIED="1735786068174" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/MetaShift/dataset" />
-    <SUITE FILE_PATH="coverage/UI$evaluation.coverage" NAME="evaluation Coverage Results" MODIFIED="1756785520130" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/UI$evaluation.coverage" NAME="evaluation Coverage Results" MODIFIED="1757074172360" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/UI$model_builder__1_.coverage" NAME="model_builder (1) Coverage Results" MODIFIED="1737194317638" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/No_image" />
     <SUITE FILE_PATH="coverage/UI$train__2_.coverage" NAME="train (2) Coverage Results" MODIFIED="1739174345073" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/No_image/pyvarinf" />
     <SUITE FILE_PATH="coverage/DUE$datasets.coverage" NAME="datasets Coverage Results" MODIFIED="1735044535114" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/lib" />
