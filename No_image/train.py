@@ -11,7 +11,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 utils.set_seed(23)
 BATCH_SIZE = 512
 LR = 1e-4
-EPOCHS = 20
+EPOCHS = 2000
 WEIGHT_DECAY = 1e-4
 NUM_MODELS = 5
 
@@ -19,6 +19,18 @@ res = data_setup.create_dataloaders()
 input_dim, train_loader, val_loader, test_loader, shift_loader, ood_loader = (res["input_dim"], res["train"], res["val"],
                                                                               res["test"], res["shift"], res["ood"])
 loss_fn = nn.BCEWithLogitsLoss()
+
+
+def train_vi_model():
+    model = model_builder.Build_DeepResNet(input_dim=input_dim)
+    model = pyvarinf.Variationalize(model)
+    model.set_prior('gaussian', **{'n_mc_samples':1})
+    model = model.to(device)
+    # print(hasattr(model, '_variationalize_module'))
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY) #  weight_decay=WEIGHT_DECAY
+    results = engine.train(model, train_loader, val_loader, test_loader, optimizer, loss_fn, EPOCHS, device)
+    utils.save_model(model, "models",  "vi_model.pth")
+    return results
 
 def training_normal_model():
     model = model_builder.Build_DeepResNet(input_dim=input_dim)
@@ -30,6 +42,9 @@ def training_normal_model():
 
 def training_sngp_model():
     model = model_builder.Build_SNGP_DeepResNet(input_dim=input_dim).to(device)
+
+    print(dir(model))
+    exit()
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY) #   weight_decay=WEIGHT_DECAY
     results = engine.train(model, train_loader, val_loader, test_loader, optimizer, loss_fn,  EPOCHS, device)
     utils.save_model(model, "models",  "sngp_model.pth")
@@ -111,13 +126,14 @@ def get_deep_ensemble_results(dataset=test_loader, num_models=NUM_MODELS,
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--nn", action="store_false", help="Use normal NN or not")
+    parser.add_argument("--nn", action="store_true", help="Use normal NN or not")
+    parser.add_argument("--vi", action="store_false", help="Use variational model or not")
     parser.add_argument("--ensemble", action="store_true", help="Use ensemble or not")
     parser.add_argument("--sngp", action="store_true", help="Use SNGP or not")
     parser.add_argument("--return_hidden", action="store_true", help="Return hidden or not")
     args = parser.parse_args()
-    if sum([args.sngp, args.nn, args.ensemble]) != 1:
-        parser.error("Exactly one of --nn, --sngp, or --ensemble must be set.")
+    if sum([args.sngp, args.nn, args.ensemble, args.vi]) != 1:
+        parser.error("Exactly one of --nn, --sngp, --ensemble or --vi must be set.")
     return args
 
 def main():
@@ -128,6 +144,9 @@ def main():
     elif args.sngp:
         results = training_sngp_model()
         output_file = "results/sngp.csv"
+    elif args.vi:
+        results = train_vi_model()
+        output_file = "results/vi.csv"
     elif args.ensemble:
         res = get_deep_ensemble_results(test_loader, NUM_MODELS, LR, EPOCHS, args.return_hidden)
         results = {"acc": res["acc"] }

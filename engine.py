@@ -105,6 +105,9 @@ def train_model(model, train_loader, loss_fn, optimizer, epochs, device):
     return model
 
 
+    return model
+
+
 
 
 

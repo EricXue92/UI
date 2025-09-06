@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def set_seed(seed):
@@ -20,24 +19,19 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
     return seed
 
-def save_model(model, target_dir, model_name, overwrite=False):
+def save_model(model, target_dir, model_name):
     assert model_name.endswith(".pth") or model_name.endswith(".pt"), "model_name should end with '.pt' or '.pth'"
     target_dir_path = Path(target_dir)
     target_dir_path.mkdir(parents=True, exist_ok=True)
     model_save_path = target_dir_path / model_name
-    if model_save_path.exists() and not overwrite:
-        print(f"[INFO] Model already exists at: {model_save_path} (skipping save).")
-        return
+    print(f"[INFO] Saving model to: {model_save_path}")
     torch.save(model.state_dict(), model_save_path)
-    print(f"[INFO] New model saved at: {model_save_path}")
-    return model_save_path
 
 def save_results_to_csv(results, result_file_path):
     os.makedirs(os.path.dirname(result_file_path), exist_ok=True)
-    results = {key: (value.cpu().numpy() if isinstance(value, torch.Tensor) else value if isinstance(value, (list, pd.Series) ) else [value])
+    results = {key: (value.cpu().numpy() if isinstance(value, torch.Tensor) else value if isinstance(value, (list, pd.Series)) else [value])
                for key, value in results.items() }
     df = pd.DataFrame(results)
-
     if not os.path.isfile(result_file_path):
         if len(df) == 3:
             df.index = ["Test", "Shift", "OOD"]
@@ -87,7 +81,6 @@ def mc_dropout(model, dataloader, n_samples=5, return_hidden=False):
         uncertainty = predictions.std(dim=0).mean(dim=1)
         pred_y = mean_prediction.argmax(dim=1)
         y_true = torch.cat(all_labels, dim=0)[:len(pred_y)]
-
         acc = (pred_y == y_true).float().mean().item()
 
         results = {"acc": round(acc, 4), "uncertainty": uncertainty}
@@ -200,26 +193,6 @@ def plot_predictive_uncertainty(test_var_sngp, shift_var_sngp, OOD_var_sngp, Uq_
     plt.savefig(save_path)
     plt.show()
     plt.close()
-
-def save_append_metric_results(results, csv_path):
-    csv_path = Path(csv_path)
-    os.makedirs(csv_path.parent, exist_ok=True)
-
-    if isinstance(results, dict):
-        df = pd.DataFrame([results])
-    elif isinstance(results, pd.DataFrame):
-        df = results
-    else:
-        raise TypeError("results must be a dict or a pd.DataFrame")
-
-    if csv_path.exists():
-        df.to_csv(csv_path, mode='a', index=False, header=False)
-    else:
-        df.to_csv(csv_path, index=False, header=True)
-
-
-
-
 
 def main():
     pass

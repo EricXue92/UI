@@ -6,7 +6,6 @@ import torch.nn.functional as F
 
 class MNISTClassifier(nn.Module):
     def __init__(self, num_classes):
-
         super(MNISTClassifier, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
@@ -34,14 +33,14 @@ class MNISTClassifier(nn.Module):
 def Build_MNISTClassifier(num_classes):
     return MNISTClassifier(num_classes=num_classes)
 
-def Build_SNGP_MNISTClassifier(num_classes=10, coeff=1.0):
+def Build_SNGP_MNISTClassifier(num_classes=10, coeff=0.95):
     model = Build_MNISTClassifier(num_classes=num_classes)
     GP_KWARGS = {
         'num_inducing': 512,
         'gp_scale': 1.0,
         'gp_bias': 0.,
-        'gp_kernel_type': 'gaussian', #  linear #gaussian
-        'gp_input_normalization': True,
+        'gp_kernel_type': 'gaussian', #  linear
+        'gp_input_normalization': False,
         'gp_cov_discount_factor': -1,
         'gp_cov_ridge_penalty': 1.,
         'gp_output_bias_trainable': False,
