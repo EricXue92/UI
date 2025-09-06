@@ -18,7 +18,6 @@ from utils import save_append_metric_results
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 seed = utils.set_seed(42)
-# seed = utils.set_seed(23)
 
 train_data, test_data = data_setup.get_train_test_mnist()
 train_loader = DataLoader(train_data, batch_size=512, shuffle=True, drop_last=True) # 938
@@ -374,7 +373,6 @@ def evaluate_metrics(model, dataloader, device, n_bins, mode="vanilla", data_typ
     brier = brier_score(probs, labels)
     # ece = adaptive_calibration_error(probs, labels, n_bins)
     ece = expected_calibration_error(probs, labels, n_bins)
-    print(n_bins)
     print(f"{mode} | {data_type} | NLL: {nll:.4f} | Brier: {brier:.4f} | ECE: {ece:.4f}")
     results = {
         "mode": mode,
@@ -386,7 +384,6 @@ def evaluate_metrics(model, dataloader, device, n_bins, mode="vanilla", data_typ
     result_file_path = Path(f"results/{mode}_{data_type}_metrics.csv")
     save_append_metric_results(results, result_file_path)
     print(f"Results saved to {result_file_path}")
-
     return nll, brier, ece
 
 
@@ -400,7 +397,6 @@ def evaluate_multiple_models(model_class, dataloader, device, n_models=10, n_bin
             ckpt_path = Path(f"checkpoints/sngp_model_{i}.pth")
         else:
             raise ValueError("Invalid mode. Choose 'vanilla' or 'sngp'.")
-
         print(f"\n[INFO] Loading checkpoint: {ckpt_path}")
         # load model
         model = model_class().to(device)
@@ -442,6 +438,7 @@ def evaluate_multiple_models(model_class, dataloader, device, n_models=10, n_bin
 def evaluate_bootstrapped_ensemble(model_class, dataloader, device, n_ensembles=5, mode="vanilla",
                                    ensemble_size=10, pool_size=20, n_bins=10, data_type="normal" ):
     nlls, briers, eces = [], [], []
+    individual_results = []
     if mode == "vanilla" :
         model_paths = [Path(f"checkpoints/normal_model_{i}.pth") for i in range(pool_size)]
     elif mode == "sngp":
@@ -464,10 +461,21 @@ def evaluate_bootstrapped_ensemble(model_class, dataloader, device, n_ensembles=
             ensemble_models.append(model)
 
         # evaluate this ensemble
-        nll, brier, ece = evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins=n_bins)
+        nll, brier, ece = evaluate_ensemble_helper(ensemble_models, dataloader, device=device,
+                                                   n_bins=n_bins, mode=mode, data_type=data_type)
         nlls.append(nll)
         briers.append(brier)
         eces.append(ece)
+
+        # Store individual result
+        individual_result = {
+            "mode": "bootstrapped_ensemble",
+            "data_type": data_type,
+            "nll": f"{nll:.4f}",
+            "brier": f"{brier:.4f}",
+            "ece": f"{ece:.4f}",
+        }
+        individual_results.append(individual_result)
 
     nll_list = torch.tensor(nlls, dtype=torch.float32)
     brier_list = torch.tensor(briers, dtype=torch.float32)
@@ -477,7 +485,7 @@ def evaluate_bootstrapped_ensemble(model_class, dataloader, device, n_ensembles=
     nll_mean, nll_std = nll_list.mean().item(), nll_list.std(unbiased=False).item()
     brier_mean, brier_std = brier_list.mean().item(), brier_list.std(unbiased=False).item()
     ece_mean, ece_std = ece_list.mean().item(), ece_list.std(unbiased=False).item()
-    results = {
+    summary_results = {
         "mode": "bootstrapped_ensemble",
         "data_type": data_type,
         "nll": f"{nll_mean:.4f} ± {nll_std:.4f}",
@@ -486,8 +494,15 @@ def evaluate_bootstrapped_ensemble(model_class, dataloader, device, n_ensembles=
     }
     result_file_path = Path(f"results/bootstrapped_ensemble_{mode}_{data_type}_metrics.csv")
     print(f"Results saved to {result_file_path}")
-    save_append_metric_results(results, result_file_path)
-    return results
+
+    # Save each individual ensemble result
+    for result in individual_results:
+        save_append_metric_results(result, result_file_path)
+
+        # Save summary result
+    save_append_metric_results(summary_results, result_file_path)
+
+    return summary_results
 
 # def evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins=15):
 #     logits_list, probs_list, labels_list = [], [], []
@@ -528,7 +543,8 @@ def evaluate_bootstrapped_ensemble(model_class, dataloader, device, n_ensembles=
 #     # ece = adaptive_calibration_error(probs, labels, n_bins)
 #     return round(nll, 4), round(brier, 4), round(ece, 4)
 
-def evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins=15):
+def evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins=15,
+                             mode="vanilla", data_type="normal"):
     all_probs, all_labels, nll_sum = [], [], 0.0
     n_samples = 0
     n = len(ensemble_models)
@@ -572,6 +588,16 @@ def evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins=15):
     member_eces = [expected_calibration_error(pm, labels, n_bins) for pm in per_model_probs]
     ece_members_avg = sum(member_eces) / len(member_eces)
     ece_ens_mean = expected_calibration_error(probs, labels, n_bins)
+
+    results = {
+        "mode": mode,
+        "data_type": data_type,
+        "nll": round(nll, 4),
+        "brier": round(brier, 4),
+        "ece": round(ece_members_avg, 4)
+    }
+    result_file_path = Path(f"results/{mode}_{data_type}_metrics.csv")
+    save_append_metric_results(results, result_file_path)
     print(f"Ensemble ECE: {ece_ens_mean:.4f} | Members' avg ECE: {ece_members_avg:.4f}")
     return round(nll, 4), round(brier, 4), round(ece_members_avg, 4)
 
@@ -598,41 +624,39 @@ def main():
 
 
     # # # 10 single models
-    evaluate_multiple_models(model_class, test_loader, device, n_models=10,
-                             n_bins=15, mode="vanilla", data_type="normal")
-    evaluate_multiple_models(model_class, shift_loader, device, n_models=10,
-                             n_bins=15,mode="vanilla", data_type="shift")
-
-    # 10 sngp single models
-    evaluate_multiple_models(sngp_class, test_loader, device, n_models=10,
-                             n_bins=15, mode="sngp", data_type="normal")
-    evaluate_multiple_models(sngp_class, shift_loader, device, n_models=10,
-                             n_bins=15,mode="sngp", data_type="shift")
+    # evaluate_multiple_models(model_class, test_loader, device, n_models=10,
+    #                          n_bins=15, mode="vanilla", data_type="normal")
+    # evaluate_multiple_models(model_class, shift_loader, device, n_models=10,
+    #                          n_bins=15,mode="vanilla", data_type="shift")
     #
-    # # # 10 mc dropout single models
-    evaluate_multiple_models(model_class, test_loader, device, n_models=10,
-                             n_bins=15, mode="mc_dropout", data_type="normal")
-    evaluate_multiple_models(model_class, shift_loader, device, n_models=10,
-                             n_bins=15, mode="mc_dropout", data_type="shift")
-
-    # 10 sngp + dropout single models
-    evaluate_multiple_models(sngp_class, test_loader, device, n_models=10,
-                             n_bins=15,mode="sngp_dropout", data_type="normal")
-    evaluate_multiple_models(sngp_class, shift_loader, device, n_models=10,
-                             n_bins=15,mode="sngp_dropout", data_type="shift")
+    # # 10 sngp single models
+    # evaluate_multiple_models(sngp_class, test_loader, device, n_models=10,
+    #                          n_bins=15, mode="sngp", data_type="normal")
+    # evaluate_multiple_models(sngp_class, shift_loader, device, n_models=10,
+    #                          n_bins=15,mode="sngp", data_type="shift")
+    # #
+    # # # # 10 mc dropout single models
+    # evaluate_multiple_models(model_class, test_loader, device, n_models=10,
+    #                          n_bins=15, mode="mc_dropout", data_type="normal")
+    # evaluate_multiple_models(model_class, shift_loader, device, n_models=10,
+    #                          n_bins=15, mode="mc_dropout", data_type="shift")
+    #
+    # # 10 sngp + dropout single models
+    # evaluate_multiple_models(sngp_class, test_loader, device, n_models=10,
+    #                          n_bins=15,mode="sngp_dropout", data_type="normal")
+    # evaluate_multiple_models(sngp_class, shift_loader, device, n_models=10,
+    #                          n_bins=15,mode="sngp_dropout", data_type="shift")
 
 
     # bootstrapped ensemble for vinillia
-    evaluate_bootstrapped_ensemble(model_class, test_loader, device, n_ensembles=5,
+    evaluate_bootstrapped_ensemble(model_class, test_loader, device, n_ensembles=5, mode="vanilla",
                                    ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
-
-    evaluate_bootstrapped_ensemble(model_class, shift_loader, device, n_ensembles=5,
+    evaluate_bootstrapped_ensemble(model_class, shift_loader, device, n_ensembles=5, mode="vanilla",
                                    ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
 
     ## bootstrapped ensemble for sngp
     evaluate_bootstrapped_ensemble(sngp_class, test_loader, device, n_ensembles=5, mode="sngp",
                                    ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
-
     evaluate_bootstrapped_ensemble(sngp_class, shift_loader, device, n_ensembles=5, mode="sngp",
                                    ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
 

@@ -194,9 +194,18 @@ def plot_predictive_uncertainty(test_var_sngp, shift_var_sngp, OOD_var_sngp, Uq_
     plt.show()
     plt.close()
 
+def save_append_metric_results(results, result_file_path):
+    os.makedirs(os.path.dirname(result_file_path), exist_ok=True)
+    results = {key: (value.cpu().numpy() if isinstance(value, torch.Tensor) else value if isinstance(value, (list, pd.Series)) else [value])
+               for key, value in results.items() }
+    df = pd.DataFrame(results)
+    if not os.path.isfile(result_file_path):
+        df.to_csv(result_file_path, index=False, header=True)
+    else:
+        df.to_csv(result_file_path, mode='a', index=False, header=False)
+
 def main():
     pass
-
 
 if __name__ == "__main__":
     main()
