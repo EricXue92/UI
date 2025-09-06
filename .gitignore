@@ -14,8 +14,7 @@ __pycache__/
 *.json
 *.h5
 
-# Model weights / checkpoints
-*.pt
-*.pth
+Diabetes-Data-Shift/*.csv
 
-Diabetes-Data-Shift/*.csv*.csv
+*.log
+*.tmp
