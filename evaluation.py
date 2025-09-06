@@ -598,27 +598,27 @@ def main():
 
 
     # # # 10 single models
-    evaluate_multiple_models(model_class, test_loader, device, n_models=5,
+    evaluate_multiple_models(model_class, test_loader, device, n_models=10,
                              n_bins=15, mode="vanilla", data_type="normal")
-    evaluate_multiple_models(model_class, shift_loader, device, n_models=5,
+    evaluate_multiple_models(model_class, shift_loader, device, n_models=10,
                              n_bins=15,mode="vanilla", data_type="shift")
 
     # 10 sngp single models
-    evaluate_multiple_models(sngp_class, test_loader, device, n_models=5,
+    evaluate_multiple_models(sngp_class, test_loader, device, n_models=10,
                              n_bins=15, mode="sngp", data_type="normal")
-    evaluate_multiple_models(sngp_class, shift_loader, device, n_models=5,
+    evaluate_multiple_models(sngp_class, shift_loader, device, n_models=10,
                              n_bins=15,mode="sngp", data_type="shift")
     #
     # # # 10 mc dropout single models
-    evaluate_multiple_models(model_class, test_loader, device, n_models=5,
+    evaluate_multiple_models(model_class, test_loader, device, n_models=10,
                              n_bins=15, mode="mc_dropout", data_type="normal")
-    evaluate_multiple_models(model_class, shift_loader, device, n_models=5,
+    evaluate_multiple_models(model_class, shift_loader, device, n_models=10,
                              n_bins=15, mode="mc_dropout", data_type="shift")
 
     # 10 sngp + dropout single models
-    evaluate_multiple_models(sngp_class, test_loader, device, n_models=5,
+    evaluate_multiple_models(sngp_class, test_loader, device, n_models=10,
                              n_bins=15,mode="sngp_dropout", data_type="normal")
-    evaluate_multiple_models(sngp_class, shift_loader, device, n_models=5,
+    evaluate_multiple_models(sngp_class, shift_loader, device, n_models=10,
                              n_bins=15,mode="sngp_dropout", data_type="shift")
 
 
