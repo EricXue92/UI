@@ -39,7 +39,7 @@ def training_normal_model():
         optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
         print(f"Training normal NN model {i}")
         results = engine.train(model, train_loader, test_loader, optimizer, loss_fn, EPOCHS, device)
-        utils.save_model(model, "checkpoints",  f"normal_model_{i}.pth", overwrite=True)
+        utils.save_model(model, "checkpoints",  f"normal_model_{i}.pth", overwrite=False)
     return results
 
 def training_sngp_model():
