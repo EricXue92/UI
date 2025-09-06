@@ -7,39 +7,57 @@ from pathlib import Path
 import os
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-utils.set_seed(42)
+# utils.set_seed(42)
 
 BATCH_SIZE = 512
 LR = 0.003
-EPOCHS = 20
+EPOCHS = 15
 WEIGHT_DECAY = 1e-4
 NUM_MODELS = 5
 ROTATE_DEGS = 2
 ROLL_PIXELS = 4
-COEFF = 0.95
+COEFF = 1.
 NUM_CLASSES = 10
 
+NUM_MODELS = 20
+
 train_data, test_data = data_setup.get_train_test_mnist()
+
 train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True) # 938
 test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, drop_last=True) # 157
+
+# Shifted MNIST dataset for distribution evaluation
 shift_data = data_setup.get_shifted_mnist(rotate_degs=ROTATE_DEGS, roll_pixels=ROLL_PIXELS)
 shift_dataloader = DataLoader(shift_data , batch_size=1024, shuffle=False, drop_last=True)
 
 loss_fn = torch.nn.CrossEntropyLoss()
 
 def training_normal_model():
-    model = model_builder.MNISTClassifier(NUM_CLASSES).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
-    results = engine.train(model, train_loader, test_loader, optimizer, loss_fn, EPOCHS, device)
-    utils.save_model(model, "models",  "normal_model.pth")
+    for i in range(NUM_MODELS):
+        utils.set_seed(i)
+        model = model_builder.MNISTClassifier(NUM_CLASSES).to(device)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+        print(f"Training normal NN model {i}")
+        results = engine.train(model, train_loader, test_loader, optimizer, loss_fn, EPOCHS, device)
+        utils.save_model(model, "checkpoints",  f"normal_model_{i}.pth", overwrite=True)
     return results
 
 def training_sngp_model():
-    model = model_builder.Build_SNGP_MNISTClassifier(NUM_CLASSES, COEFF).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
-    results = engine.train(model, train_loader, test_loader, optimizer, loss_fn,  EPOCHS, device)
-    utils.save_model(model, "models",  "sngp_model.pth")
+    # ensemble of 10 SNGP models
+    random_ints = [i for i in range(NUM_MODELS)]
+    for i in random_ints:
+        utils.set_seed(i)
+        model = model_builder.Build_SNGP_MNISTClassifier(NUM_CLASSES, COEFF).to(device)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+        results = engine.train(model, train_loader, test_loader, optimizer, loss_fn,  EPOCHS, device)
+        utils.save_model(model, "checkpoints",  f"sngp_model_{i}.pth", overwrite=True)
     return results
+
+    # model = model_builder.Build_SNGP_MNISTClassifier(NUM_CLASSES, COEFF).to(device)
+    # optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+    # results = engine.train(model, train_loader, test_loader, optimizer, loss_fn,  EPOCHS, device)
+    # utils.save_model(model, "models",  f"sngp_model.pth", overwrite=True)
+    # return results
 
 def train_ensemble(models, train_loader, learning_rate, num_epochs, device, weight_decay=WEIGHT_DECAY):
     save_dir = "models"
@@ -80,17 +98,13 @@ def evaluate_ensemble(models, dataloader, device, return_hidden=False):
                 hiddens.append(torch.cat(model_hiddens, dim=0).unsqueeze(0))
     predictions = torch.cat(predictions, dim=0)
     mean_prediction = predictions.mean(dim=0)
-
     mean_std = predictions.std(dim=0)
     uncertainty = mean_std.mean(dim=1)
-
     pred_y = mean_prediction.argmax(dim=1)
     y_true = torch.cat(all_labels, dim=0)
     y_true = y_true[:len(pred_y)]
     acc = (pred_y == y_true).float().mean().item()
-
     results = {"acc": round(acc, 4), "uncertainty": uncertainty}
-
     if return_hidden:
         results["hiddens"] = torch.cat(hiddens, dim=0).mean(dim=0)
     return results
@@ -109,10 +123,10 @@ def get_deep_ensemble_results(num_classes=NUM_CLASSES, dataset=test_loader, num_
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--nn", action="store_true", help="Use normal NN or not")
+    parser.add_argument("--nn", action="store_false", help="Use normal NN or not")
     parser.add_argument("--num_classes", type=int, default=10, help="Number of classes.")
     parser.add_argument("--ensemble", action="store_true", help="Use ensemble or not")
-    parser.add_argument("--sngp", action="store_false", help="Use SNGP or not")
+    parser.add_argument("--sngp", action="store_true", help="Use SNGP or not")
     parser.add_argument("--return_hidden", action="store_true", help="Return hidden or not")
     args = parser.parse_args()
     if sum([args.sngp, args.nn, args.ensemble]) != 1:

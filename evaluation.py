@@ -1,264 +1,142 @@
-from pathlib import Path
+from __future__ import print_function
+import sys  # /home/xuelong/UI
 import numpy as np
 import torch
-from collections import defaultdict
-import data_setup, model_builder, utils, train
-from torch.utils.data import DataLoader
-from sklearn.metrics import roc_curve
+from pathlib import Path
+# from data_setup import get_all_test_dataloaders
+
+from train import parse_arguments
+import pyvarinf
+from build_model import Build_MNISTClassifier
+import os
+import pandas as pd
+
+# caution: path[0] is reserved for script path (or '' in REPL)
+sys.path.insert(1, '/home/xuelong/UI')
+
+import data_setup
+from No_image import model_builder
+
+from data import create_dataloaders
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-seed = utils.set_seed(42)
 
-train_data, test_data = data_setup.get_train_test_mnist()
-train_loader = DataLoader(train_data, batch_size=512, shuffle=True, drop_last=True) # 938
 
-# defined the shift data level
 ROTATE_DEGS, ROLL_PIXELS = 2, 4
-test_loader, shift_loader, ood_loader = data_setup.get_all_test_dataloaders(batch_size=1024, rotate_degs=ROTATE_DEGS, roll_pixels=ROLL_PIXELS) # 4
 
-def load_model(model_path="models/normal_model.pth"):
-    model = model_builder.Build_MNISTClassifier(10)
-    model.load_state_dict(torch.load(model_path))
-    return model
 
-def load_sngp_model(model_path="models/sngp_model.pth"):
-    sngp_model = model_builder.Build_SNGP_MNISTClassifier(10)
-    sngp_model.load_state_dict(torch.load(model_path))
-    return sngp_model
+args = parse_arguments()
 
-model = load_model().to(device)
-sngp_model = load_sngp_model().to(device)
-sngp_model.classifier.update_covariance_matrix()
+test_loader, shift_loader, ood_loader = data_setup.get_all_test_dataloaders(batch_size=512, rotate_degs=ROTATE_DEGS, roll_pixels=ROLL_PIXELS) # 4
 
-# For saved NN and SNGP models to get the shift accuracy
+
+res = create_dataloaders()
+input_dim, train_loader, val_loader, test_loader, shift_loader, ood_loader = (res["input_dim"], res["train"], res["val"],
+                                                                              res["test"], res["shift"], res["ood"])
+
+kwargs = {'num_workers': 4, 'pin_memory': True}
+#
 def shift_acc(model, data_loader):
     model.eval()
+    total_samples = 0
     correct = 0
     with torch.no_grad():
         for X, y in data_loader:
             X, y= X.to(device), y.to(device)
+            batch_size = y.size(0)
             logits = model(X)
-            pred_y = torch.argmax(logits, dim=1)
-            correct += (pred_y == y).sum().item()
-    return correct / len(data_loader.dataset)
-
-# Get all shift acc
-def get_all_shift_acc():
-    results = {}
-    results["nn"] = shift_acc(model, shift_loader)
-    results["sngp"] = shift_acc(sngp_model, shift_loader)
-    results['dropout'] = utils.mc_dropout(model, shift_loader)['acc']
-    results['deepensemble'] = train.get_deep_ensemble_results(dataset=shift_loader)["acc"]
-
-    result_file_path = Path("results/all_shift_acc.csv")
-    utils.save_results_to_csv(results, result_file_path)
-
-
-def get_hidden_representation(model, dataloader, model_type='nn'):
-    hiddens = []
-    # For SNGP, specific evaluation kwargs
-    eval_kwargs = {
-        'return_random_features': True,
-        'return_covariance': False,
-        'update_precision_matrix': False,
-        'update_covariance_matrix': False
-    }
-    with torch.no_grad():
-        for X, y in dataloader:
-            X, y = X.to(device), y.to(device)
-            if model_type == 'nn':
-                logits, hidden = model(X, return_hidden=True)  # For regular NN
-            elif model_type == 'sngp':
-                logits, hidden = model(X, **eval_kwargs)  # For SNGP
+            if args.dataset == "MNIST":
+                pred_y = torch.argmax(logits, dim=1)
+            elif args.dataset == "Diabetes":
+                pred_y = (torch.sigmoid(logits) > 0.5)
+                print(f"pred_y shape : {pred_y.shape}")
             else:
-                raise ValueError("Invalid model_type. Choose 'nn' or 'sngp'.")
-            hiddens.append(hidden)
-    hiddens = torch.cat(hiddens, dim=0)
-    return hiddens
+                raise ValueError("Unknown dataset")
+            correct += (pred_y == y).sum().item()
+            total_samples += batch_size
+    acc = correct / total_samples
+    print(f"Each accuracy: {acc * 100:.2f}%")
+    return acc
 
-def get_all_hiddens(dataset=test_loader):
-    results = {}
-    results["nn"] = get_hidden_representation(model, dataset, model_type='nn')
-    results["sngp"] = get_hidden_representation(sngp_model, dataset, model_type='sngp')
-    results['dropout'] = utils.mc_dropout(model, dataset, return_hidden=True)['hiddens']
-    results['deepensemble'] = train.get_deep_ensemble_results(dataset=dataset, return_hidden=True)["hiddens"]
-    return results
+# with no ground truth labels for OOD data (y here is dummy variable)
+def ood_acc(model, data_loader):
+    model.eval()
+    all_preds = []
 
-# # Only need to get the SNGP uncertainty, dropout and deep ensemble are already done
-# def get_sngp_uncertainty(model=sngp_model, dataset=test_loader):
-#     uncertainties = []
-#     kwargs = {'return_random_features': False, 'return_covariance': True,
-#               'update_precision_matrix': False, 'update_covariance_matrix': False}
-#     with torch.no_grad():
-#         for batch, (X, y) in enumerate(dataset):
-#             X = X.to(device)
-#             _, cov = model(X, return_hidden=False, **kwargs)
-#             uncertainty = torch.diag(cov)
-#             uncertainties.append(uncertainty)
-#     uncertainties = torch.cat(uncertainties, dim=0)
-#     return uncertainties
-
-# Only need to get the SNGP uncertainty, dropout and deep ensemble are already done
-def get_sngp_uncertainty(model=sngp_model, dataset=test_loader, return_correctness=False):
-    uncertainties, correctness = [], []
-    kwargs = {'return_random_features': False, 'return_covariance': True,
-              'update_precision_matrix': False, 'update_covariance_matrix': False}
     with torch.no_grad():
-        for batch, (X, y) in enumerate(dataset):
+        for X, y in data_loader:
             X, y = X.to(device), y.to(device)
-            logits, cov = model(X, return_hidden=False, **kwargs)
-            uncertainty = torch.diag(cov)
-            uncertainties.append(uncertainty)
+            logits = model(X)
+            preds = torch.sigmoid(logits)
+            all_preds.append(preds)
+    all_preds = torch.cat(all_preds, dim=0)
+    return all_preds
 
-            preds = torch.argmax(logits, dim=1)
-            correct = (preds == y).float()
-            correctness.append(1 - correct)
 
-    if correctness and uncertainties:
-        expected_size = correctness[0].shape[0]
-        correctness = [c for c in correctness if c.shape[0] == expected_size]
-        uncertainties = [u for u in uncertainties if u.shape[0] == expected_size]
+def evaluate_vi_model(models, data_loader):
+    accuracies = []
+    for model in models:
+        acc = shift_acc(model, data_loader)
+        accuracies.append(acc)
+    mean_acc, var = np.mean(accuracies), np.var(accuracies)
+    print(f"Mean Accuracy: {mean_acc * 100:.2f}%")
+    print(f"Variance: {var:.4f}")
+    return mean_acc, var
 
-    uncertainties = torch.cat(uncertainties, dim=0)
-    correctness = torch.cat(correctness, dim=0)
+def save_model(model, target_dir="model", model_name="vi_model.pth"):
+    assert model_name.endswith(".pth") or model_name.endswith(".pt"), "model_name should end with '.pt' or '.pth'"
+    target_dir_path = Path(target_dir)
+    target_dir_path.mkdir(parents=True, exist_ok=True)
+    model_save_path = target_dir_path / model_name
+    print(f"[INFO] Saving model to: {model_save_path}")
+    torch.save(model.state_dict(), model_save_path)
 
-    print(f"SNGP Uncertainty shape: {uncertainties.shape}")
-    print(f"Correctness shape: {correctness.shape}")
-    if not return_correctness:
-        return uncertainties
+def load_model(model_path="model/vi_model.pth"):
+    if args.dataset == "MNIST":
+        model = Build_MNISTClassifier(10)
+    elif args.dataset == "Diabetes":
+        model = model_builder.Build_DeepResNet(input_dim=input_dim)
     else:
-        return uncertainties, correctness
+        raise ValueError("Unknown dataset")
 
-def get_all_uncertainty(dataset):
-    sngp_uncertainty = get_sngp_uncertainty(model=sngp_model, dataset=dataset)
-    dropout_uncertainty = utils.mc_dropout(model, dataset)['uncertainty']
-    ensemble_uncertainty = train.get_deep_ensemble_results(dataset=dataset)["uncertainty"]
-    print(f"MC Dropout Uncertainty shape: {dropout_uncertainty .shape} | SNGP Uncertainty shape: {sngp_uncertainty.shape} | DeepEnsemble Uncertainty shape: {ensemble_uncertainty.shape}")
-    return sngp_uncertainty, dropout_uncertainty, ensemble_uncertainty
+    var_model = pyvarinf.Variationalize(model)
+    var_model.load_state_dict(torch.load(model_path))
 
-def get_mc_results(num_models=5, return_hidden=False):
-    acc_result = {}
-    results = utils.mc_dropout(model, test_loader, num_models, return_hidden)
-    acc_result["mcdropout"] = round(results['acc'], 4)
-    # print(f"Test Accuracy: {results['acc']:.4f} | Uncertainty shape: {results['uncertainty'].shape}")
-    result_file_path = Path("results/mcdropout.csv")
-    utils.save_results_to_csv(acc_result , result_file_path)
+    n_samples = 100
+    models = [pyvarinf.Sample(var_model) for _ in range(n_samples)]
+    for model in models:
+        model.draw()
+        model.to(device)
+    return models
 
-def get_all_distance(dataset=test_loader):
-    # Get the train hiddens for all models
-    sngp_hidden_tr = get_hidden_representation(sngp_model, train_loader, model_type='sngp')
-    dropout_hidden_tr = utils.mc_dropout(model, train_loader, return_hidden=True)['hiddens']
-    ensemble_hidden_tr = train.get_deep_ensemble_results(dataset=train_loader, return_hidden=True)["hiddens"]
+def save_results_to_csv(results, result_file_path):
+    os.makedirs(os.path.dirname(result_file_path), exist_ok=True)
+    df = pd.DataFrame(results)
+    df.index = ["Test", "Shift", "OOD"]
+    if not os.path.isfile(result_file_path):
+        df.to_csv(result_file_path, index=True, header=True)
+    else:
+        df.to_csv(result_file_path, mode='a', index=False, header=False)
 
-    all_hiddens = get_all_hiddens(dataset)
-    sngp_hiddens, dropout_hiddens, ensemble_hiddens =  all_hiddens['sngp'], all_hiddens['dropout'], all_hiddens['deepensemble']
-    sngp_dist = utils.distance_helper(sngp_hidden_tr, sngp_hiddens, k=50) # 100
-    sngp_dist = sngp_dist.mean(dim=1)
-    print(f"sngp_dist shape: {sngp_dist.shape}")
-    dropout_dist = utils.distance_helper(dropout_hidden_tr, dropout_hiddens)
-    dropout_dist = dropout_dist.mean(dim=1)
-    print(f"dropout_dist shape: {dropout_dist.shape}")
-    ensemble_dist = utils.distance_helper(ensemble_hidden_tr, ensemble_hiddens)
-    ensemble_dist = ensemble_dist.mean(dim=1)
-    print(f"ensemble_dist shape: {ensemble_dist.shape}")
-    return sngp_dist, dropout_dist, ensemble_dist
+if __name__ == '__main__':
+    res = {"acc": [], "uncertainty": []}
+    if args.dataset == "MNIST":
+        models = load_model("model/vi_model_MNIST.pth")
+        file_path = Path("results/vi_results_mnist.csv")
+    else:
+        models = load_model("model/vi_model_Diabetes.pth")
+        file_path = Path("results/vi_results_diabetes.csv")
 
-def cal_correlation(x1, x2):
-    x1, x2 = x1.cpu().numpy(), x2.cpu().numpy()
-    correlation_matrix = np.corrcoef(x1, x2)
-    correlation_coefficient = correlation_matrix[0, 1]
-    return correlation_coefficient
+    for data in [test_loader, shift_loader, ood_loader ]:
+        mean_acc, var = evaluate_vi_model(models, data)
+        mean_acc, var = round(mean_acc, 4), round(var, 4)
+        res["acc"].append(mean_acc)
+        res["uncertainty"].append(var)
 
-def get_all_corrs():
-    res_corr, res_uncertainty = defaultdict(list), defaultdict(list)
-    file_path_corr, file_path_uncertainty = Path("results/corr.csv"), Path("results/mean_uncertainty.csv")
-
-    data_loaders = [test_loader, shift_loader, ood_loader]
-
-    sngp_combined_uncertainty, dropout_combined_uncertainty, ensemble_combined_uncertainty = [], [], []
-    sngp_combined_dist, dropout_combined_dist, ensemble_combined_dist = [], [], []
-
-    for dataloader in data_loaders:
-        sngp_uncertainty, dropout_uncertainty, ensemble_uncertainty = get_all_uncertainty(dataset=dataloader)
-
-        res_uncertainty["sngp_uncertainty"].append(round(sngp_uncertainty.mean().item(), 4))
-        res_uncertainty["dropout_uncertainty"].append(round(dropout_uncertainty.mean().item(),4))
-        res_uncertainty["ensemble_uncertainty"].append(round(ensemble_uncertainty.mean().item(),4))
-
-        sngp_dist, dropout_dist, ensemble_dist =get_all_distance(dataset=dataloader)
-        sngp_corr = cal_correlation(sngp_uncertainty, sngp_dist)
-        dropout_corr = cal_correlation(dropout_uncertainty, dropout_dist) ###
-        ensemble_corr = cal_correlation(ensemble_uncertainty, ensemble_dist) ###
-        print(f"sngp_corr: {sngp_corr:.4f} | dropout_corr: {dropout_corr:.4f} | ensemble_corr: {ensemble_corr:.4f}")
-
-        res_corr["sngp_corr"].append(round(sngp_corr, 4))
-        res_corr["dropout_corr"].append(round(dropout_corr, 4) )
-        res_corr["ensemble_corr"].append(round(ensemble_corr, 4) )
-
-        sngp_combined_uncertainty.append(sngp_uncertainty)
-        dropout_combined_uncertainty.append(dropout_uncertainty)
-        ensemble_combined_uncertainty.append(ensemble_uncertainty)
-
-        sngp_combined_dist.append(sngp_dist)
-        dropout_combined_dist.append(dropout_dist)
-        ensemble_combined_dist.append(ensemble_dist)
-
-    sngp_combined_uncertainty = torch.cat(sngp_combined_uncertainty, dim=0)
-    dropout_combined_uncertainty = torch.cat(dropout_combined_uncertainty, dim=0)
-    ensemble_combined_uncertainty = torch.cat(ensemble_combined_uncertainty, dim=0)
-
-    sngp_combined_dist = torch.cat(sngp_combined_dist, dim=0)
-    dropout_combined_dist = torch.cat(dropout_combined_dist, dim=0)
-    ensemble_combined_dist = torch.cat(ensemble_combined_dist, dim=0)
-
-    sngp_combined_corr = cal_correlation(sngp_combined_uncertainty, sngp_combined_dist)
-    dropout_combined_corr = cal_correlation(dropout_combined_uncertainty, dropout_combined_dist)
-    ensemble_combined_corr = cal_correlation(ensemble_combined_uncertainty, ensemble_combined_dist)
-
-    res_corr["sngp_corr"].append( round(sngp_combined_corr, 4) )
-    res_corr["dropout_corr"].append( round(dropout_combined_corr, 4) )
-    res_corr["ensemble_corr"].append( round(ensemble_combined_corr, 4) )
-
-    print(f"sngp_combined_corr: {sngp_combined_corr:.4f} | dropout_combined_corr: {dropout_combined_corr:.4f} "
-          f"| ensemble_combined_corr: {ensemble_combined_corr:.4f}")
-
-    utils.save_results_to_csv(res_corr, file_path_corr)
-    utils.save_results_to_csv(res_uncertainty, file_path_uncertainty)
-
-
-def uncertainty_thershold(model, data_loader):
-    uncertainties, correctness = get_sngp_uncertainty(model, data_loader, True)
-    uncertainties = uncertainties.cpu().numpy()
-    correctness =  correctness.cpu().numpy()
-    s_fpr, s_tpr, s_thresh  = roc_curve(correctness, uncertainties)
-    max_j = max(zip(s_tpr, s_fpr), key=lambda x: x[0] - x[1])
-    slide_uq = s_thresh[list(zip(s_tpr, s_fpr)).index(max_j)]
-    print(f"Slide uncertainty: {slide_uq}, quantile of low uncertainty: {np.mean(uncertainties<=slide_uq)}")
-    return slide_uq
-
-
-def main():
-    # get_mc_results()
-    get_all_shift_acc()
-    # get_all_corrs()
-
-    # Uq_threshold = uncertainty_thershold(sngp_model, test_loader)
-    #
-    # sngp_uq = []
-    # data_loaders = [test_loader, shift_loader, ood_loader]
-    #
-    # for dataloader in data_loaders:
-    #     uq = get_sngp_uncertainty(model=sngp_model, dataset=dataloader)
-    #     sngp_uq.append(uq.cpu().numpy())
-    # print(np.mean(sngp_uq[0]))
-    # print(np.mean(sngp_uq[1]))
-    # print(np.mean(sngp_uq[2]))
-    # utils.plot_predictive_uncertainty(sngp_uq[0], sngp_uq[1], sngp_uq[2], Uq_threshold, 'UQ_Threshold.pdf')
+    save_results_to_csv(res, file_path)
 
 
 
-if __name__ == "__main__":
-    main()
 
 
 
