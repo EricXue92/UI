@@ -12,9 +12,10 @@ import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import torch.nn.functional as F
 import random
+import time
 
 from added_metrics import negative_log_likelihood, brier_score, expected_calibration_error
-from utils import save_append_metric_results
+from utils import save_append_metric_results, batch_ttests
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 seed = utils.set_seed(42)
@@ -303,17 +304,14 @@ def evaluate_metrics(model, dataloader, device, n_bins, mode="vanilla", data_typ
     else:
         print(f"Invalid mode: {mode}. Choose 'vanilla' or 'mc_dropout'.")
     logits_list, probs_list, labels_list = [], [], []
-
     with torch.no_grad():
         for X,y in dataloader:
             X, y = X.to(device), y.to(device)
-
             if mode == "vanilla" or mode == "sngp":
                 logits = model(X, return_hidden=False)
                 probs = torch.softmax(logits, dim=1)
                 logits_list.append(logits.cpu())
                 probs_list.append(probs.cpu())
-
             elif mode == "mc_dropout":
                 probs_accum = None
                 for _ in range(5):
@@ -325,13 +323,11 @@ def evaluate_metrics(model, dataloader, device, n_bins, mode="vanilla", data_typ
                     probs_accum = probs_mc if probs_accum is None else probs_accum + probs_mc
                 probs_mean = probs_accum / 5  # predictive p
                 probs_list.append(probs_mean.cpu())
-
                 if probs_mean.ndim == 1 or probs_mean.size(1) == 1:  # binary
                     p_correct = probs_mean.view(-1).gather(0, y)
                 else:
                     p_correct = probs_mean.gather(1, y.unsqueeze(1)).squeeze(1)
                 logits_list.append(torch.log(p_correct + 1e-15).unsqueeze(1).cpu())
-
             elif mode == "sngp_dropout":
                 probs_accum = None
                 for _ in range(5):
@@ -350,16 +346,12 @@ def evaluate_metrics(model, dataloader, device, n_bins, mode="vanilla", data_typ
                 logits_list.append(torch.log(p_correct + 1e-15).unsqueeze(1).cpu())
             else:
                 print(f"Invalid mode: {mode}")
-
             labels_list.append(y.cpu())
-
     # For NLL we still need logits or p(correct). The most numerically
     # stable way:  −log p̄_y  where p̄_y is the mean prob assigned to the true class.
-
     logits = torch.cat(logits_list, dim=0)
     probs = torch.cat(probs_list, dim=0)
     labels = torch.cat(labels_list, dim=0)
-
     # Negative log-likelihood
     if mode == "vanilla" or mode == "sngp":
         nll = negative_log_likelihood(logits, labels)
@@ -368,7 +360,6 @@ def evaluate_metrics(model, dataloader, device, n_bins, mode="vanilla", data_typ
         nll = -logits.squeeze().mean().item()
     else:
         print(f"Invalid mode: {mode}")
-
     # Metrics
     brier = brier_score(probs, labels)
     # ece = adaptive_calibration_error(probs, labels, n_bins)
@@ -388,7 +379,8 @@ def evaluate_metrics(model, dataloader, device, n_bins, mode="vanilla", data_typ
 
 
 # simple model to compute 10 times and report mean ± std (finished)
-def evaluate_multiple_models(model_class, dataloader, device, n_models=10, n_bins=10, mode="vanilla", data_type="normal"):
+def evaluate_multiple_models(model_class, dataloader, device, n_models=10, n_bins=10,
+                             mode="vanilla", data_type="normal"):
     nlls, briers, eces = [], [], []
     for i in range(n_models):
         if mode == "vanilla" or mode == "mc_dropout" :
@@ -398,13 +390,15 @@ def evaluate_multiple_models(model_class, dataloader, device, n_models=10, n_bin
         else:
             raise ValueError("Invalid mode. Choose 'vanilla' or 'sngp'.")
         print(f"\n[INFO] Loading checkpoint: {ckpt_path}")
+
         # load model
         model = model_class().to(device)
         state_dict = torch.load(ckpt_path, map_location=device)
         model.load_state_dict(state_dict)
         model.to(device)
 
-        nll, brier, ece = evaluate_metrics(model, dataloader, device, n_bins=n_bins, mode=mode, data_type=data_type)
+        nll, brier, ece = evaluate_metrics(model, dataloader, device,
+                                           n_bins=n_bins, mode=mode, data_type=data_type)
         nlls.append(nll)
         briers.append(brier)
         eces.append(ece)
@@ -423,7 +417,7 @@ def evaluate_multiple_models(model_class, dataloader, device, n_models=10, n_bin
     eces_std = eces_var ** 0.5
 
     results = {
-        "mode": "sngp",
+        "mode": mode,
         "data_type": data_type,
         "nll": f"{nlls_mean:.4f} ± {nlls_std:.4f}",
         "brier": f"{briers_mean:.4f} ± {briers_std:.4f}",
@@ -629,18 +623,18 @@ def main():
     # evaluate_multiple_models(model_class, shift_loader, device, n_models=10,
     #                          n_bins=15,mode="vanilla", data_type="shift")
     #
-    # # 10 sngp single models
+    # # # 10 sngp single models
     # evaluate_multiple_models(sngp_class, test_loader, device, n_models=10,
     #                          n_bins=15, mode="sngp", data_type="normal")
     # evaluate_multiple_models(sngp_class, shift_loader, device, n_models=10,
     #                          n_bins=15,mode="sngp", data_type="shift")
-    # #
-    # # # # 10 mc dropout single models
+    #
+    # # # 10 mc dropout single models
     # evaluate_multiple_models(model_class, test_loader, device, n_models=10,
     #                          n_bins=15, mode="mc_dropout", data_type="normal")
     # evaluate_multiple_models(model_class, shift_loader, device, n_models=10,
     #                          n_bins=15, mode="mc_dropout", data_type="shift")
-    #
+    # #
     # # 10 sngp + dropout single models
     # evaluate_multiple_models(sngp_class, test_loader, device, n_models=10,
     #                          n_bins=15,mode="sngp_dropout", data_type="normal")
@@ -649,16 +643,36 @@ def main():
 
 
     # bootstrapped ensemble for vinillia
-    evaluate_bootstrapped_ensemble(model_class, test_loader, device, n_ensembles=5, mode="vanilla",
-                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
-    evaluate_bootstrapped_ensemble(model_class, shift_loader, device, n_ensembles=5, mode="vanilla",
-                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
+    # evaluate_bootstrapped_ensemble(model_class, test_loader, device, n_ensembles=5, mode="vanilla",
+    #                                ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
+    # evaluate_bootstrapped_ensemble(model_class, shift_loader, device, n_ensembles=5, mode="vanilla",
+    #                                ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
+    #
+    # ## bootstrapped ensemble for sngp
+    # evaluate_bootstrapped_ensemble(sngp_class, test_loader, device, n_ensembles=5, mode="sngp",
+    #                                ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
+    # evaluate_bootstrapped_ensemble(sngp_class, shift_loader, device, n_ensembles=5, mode="sngp",
+    #                                ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
 
-    ## bootstrapped ensemble for sngp
-    evaluate_bootstrapped_ensemble(sngp_class, test_loader, device, n_ensembles=5, mode="sngp",
-                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
-    evaluate_bootstrapped_ensemble(sngp_class, shift_loader, device, n_ensembles=5, mode="sngp",
-                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
+
+    pairs = [
+        ("results/vanilla_normal_metrics.csv", "results/sngp_normal_metrics.csv", "normal"),
+        ("results/vanilla_shift_metrics.csv",  "results/sngp_shift_metrics.csv",  "shift"),
+
+        ("results/mc_dropout_normal_metrics.csv", "results/sngp_normal_metrics.csv", "normal"),
+        ("results/mc_dropout_shift_metrics.csv",  "results/sngp_shift_metrics.csv",  "shift"),
+
+
+        ("results/bootstrapped_ensemble_vanilla_normal_metrics.csv",
+         "results/bootstrapped_ensemble_sngp_normal_metrics.csv", "normal"),
+
+        ("results/bootstrapped_ensemble_vanilla_shift_metrics.csv",
+         "results/bootstrapped_ensemble_sngp_shift_metrics.csv", "shift"),
+    ]
+
+
+    # time.sleep(5)
+    batch_ttests(pairs)
 
 
     # # for dataloader in data_loaders:
