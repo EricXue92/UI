@@ -13,6 +13,7 @@ from scipy.stats import gaussian_kde
 import torch.nn.functional as F
 import random
 import time
+import pandas as pd
 
 from added_metrics import negative_log_likelihood, brier_score, expected_calibration_error
 from utils import save_append_metric_results, batch_ttests
@@ -588,14 +589,12 @@ def evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins=15,
         "data_type": data_type,
         "nll": round(nll, 4),
         "brier": round(brier, 4),
-        "ece": round(ece_members_avg, 4)
+        "ece": round(ece_members_avg, 4) #ece_members_avg
     }
     result_file_path = Path(f"results/{mode}_{data_type}_metrics.csv")
     save_append_metric_results(results, result_file_path)
     print(f"Ensemble ECE: {ece_ens_mean:.4f} | Members' avg ECE: {ece_members_avg:.4f}")
-    return round(nll, 4), round(brier, 4), round(ece_members_avg, 4)
-
-
+    return round(nll, 4), round(brier, 4), round(ece_ens_mean, 4) #
 
 
 
@@ -643,36 +642,54 @@ def main():
 
 
     # bootstrapped ensemble for vinillia
-    # evaluate_bootstrapped_ensemble(model_class, test_loader, device, n_ensembles=5, mode="vanilla",
-    #                                ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
-    # evaluate_bootstrapped_ensemble(model_class, shift_loader, device, n_ensembles=5, mode="vanilla",
-    #                                ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
+    evaluate_bootstrapped_ensemble(model_class, test_loader, device, n_ensembles=5, mode="vanilla",
+                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
+    evaluate_bootstrapped_ensemble(model_class, shift_loader, device, n_ensembles=5, mode="vanilla",
+                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
+
+    ## bootstrapped ensemble for sngp
+    evaluate_bootstrapped_ensemble(sngp_class, test_loader, device, n_ensembles=5, mode="sngp",
+                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
+    evaluate_bootstrapped_ensemble(sngp_class, shift_loader, device, n_ensembles=5, mode="sngp",
+                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
+
+
+    # pairs = [
+    #     ("results/vanilla_normal_metrics.csv", "results/sngp_normal_metrics.csv", "normal"),
+    #     ("results/vanilla_shift_metrics.csv",  "results/sngp_shift_metrics.csv",  "shift"),
     #
-    # ## bootstrapped ensemble for sngp
-    # evaluate_bootstrapped_ensemble(sngp_class, test_loader, device, n_ensembles=5, mode="sngp",
-    #                                ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
-    # evaluate_bootstrapped_ensemble(sngp_class, shift_loader, device, n_ensembles=5, mode="sngp",
-    #                                ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
-
-
-    pairs = [
-        ("results/vanilla_normal_metrics.csv", "results/sngp_normal_metrics.csv", "normal"),
-        ("results/vanilla_shift_metrics.csv",  "results/sngp_shift_metrics.csv",  "shift"),
-
-        ("results/mc_dropout_normal_metrics.csv", "results/sngp_normal_metrics.csv", "normal"),
-        ("results/mc_dropout_shift_metrics.csv",  "results/sngp_shift_metrics.csv",  "shift"),
-
-
-        ("results/bootstrapped_ensemble_vanilla_normal_metrics.csv",
-         "results/bootstrapped_ensemble_sngp_normal_metrics.csv", "normal"),
-
-        ("results/bootstrapped_ensemble_vanilla_shift_metrics.csv",
-         "results/bootstrapped_ensemble_sngp_shift_metrics.csv", "shift"),
-    ]
-
-
-    # time.sleep(5)
-    batch_ttests(pairs)
+    #     ("results/mc_dropout_normal_metrics.csv", "results/sngp_normal_metrics.csv", "normal"),
+    #     ("results/mc_dropout_shift_metrics.csv",  "results/sngp_shift_metrics.csv",  "shift"),
+    #
+    #
+    #     ("results/bootstrapped_ensemble_vanilla_normal_metrics.csv",
+    #      "results/bootstrapped_ensemble_sngp_normal_metrics.csv", "normal"),
+    #
+    #     ("results/bootstrapped_ensemble_vanilla_shift_metrics.csv",
+    #      "results/bootstrapped_ensemble_sngp_shift_metrics.csv", "shift"),
+    # ]
+    #
+    #
+    # # time.sleep(5)
+    # batch_ttests(pairs)
+    #
+    #
+    # df = pd.read_csv("results/ttest_results.csv")
+    #
+    # # keep only relevant columns
+    # cols = ["label", "baseline", "proposed", "nll_pval", "brier_pval", "ece_pval"]
+    # table = df[cols].copy()
+    #
+    # # format to 4 decimals and bold if <0.05
+    # def fmt_p(p):
+    #     if pd.isna(p): return "—"
+    #     p = float(p)
+    #     return f"**{p:.4f}**" if p < 0.05 else f"{p:.4f}"
+    #
+    # for m in ["nll_pval", "brier_pval", "ece_pval"]:
+    #     table[m] = table[m].apply(fmt_p)
+    #
+    # print(table.to_markdown(index=False))
 
 
     # # for dataloader in data_loaders:
