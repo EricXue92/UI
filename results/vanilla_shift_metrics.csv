@@ -1,2 +1,12 @@
 mode,data_type,nll,brier,ece
-vanilla,shift,2.4767,0.6606,0.2794
+vanilla,shift,2.4603,0.6197,0.2645
+vanilla,shift,2.2363,0.6063,0.2523
+vanilla,shift,1.9216,0.5617,0.2379
+vanilla,shift,2.0977,0.5641,0.2382
+vanilla,shift,2.3069,0.6125,0.266
+vanilla,shift,2.2513,0.6481,0.2786
+vanilla,shift,2.2734,0.5482,0.2269
+vanilla,shift,2.1474,0.625,0.2632
+vanilla,shift,2.529,0.6927,0.2912
+vanilla,shift,3.2121,0.8075,0.3583
+vanilla,shift,2.3436 ± 0.3325,0.6286 ± 0.0724,0.2677 ± 0.0355

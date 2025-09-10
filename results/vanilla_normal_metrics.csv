@@ -1,2 +1,12 @@
 mode,data_type,nll,brier,ece
-vanilla,normal,0.0363,0.0146,0.0052
+vanilla,normal,0.0318,0.0136,0.0049
+vanilla,normal,0.0292,0.0127,0.0046
+vanilla,normal,0.0275,0.0116,0.0041
+vanilla,normal,0.0239,0.011,0.0038
+vanilla,normal,0.0286,0.0129,0.0049
+vanilla,normal,0.04,0.0176,0.0066
+vanilla,normal,0.0316,0.0144,0.005
+vanilla,normal,0.0272,0.0124,0.0045
+vanilla,normal,0.0253,0.0117,0.0034
+vanilla,normal,0.0342,0.015,0.0054
+vanilla,normal,0.0299 ± 0.0045,0.0133 ± 0.0019,0.0047 ± 0.0008

@@ -220,7 +220,8 @@ def ttest_from_csv(baseline_csv, proposed_csv, metrics=("nll","brier","ece") ):
             res[f"{col}_pval"] = np.nan
             continue
 
-        t_stat, p_val = stats.ttest_ind(xp, xb, alternative="less", equal_var=False)
+        # t_stat, p_val = stats.ttest_ind(xp, xb, alternative="less", equal_var=False)
+        t_stat, p_val = stats.ttest_rel(xp, xb, alternative="less", equal_var=False)
         res[f"{col}_pval"] = float(p_val)
     return res
 
