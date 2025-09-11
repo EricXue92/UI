@@ -9,9 +9,8 @@ import torch.nn.functional as F
 import random
 import pandas as pd
 import time
-import os
 from added_metrics import negative_log_likelihood, brier_score, expected_calibration_error
-from utils import save_append_metric_results, batch_ttests
+from utils import batch_ttests
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 seed = utils.set_seed(42)
@@ -256,7 +255,7 @@ def main():
     sngp_class = lambda: model_builder.Build_SNGP_MNISTClassifier(num_classes=10, coeff=1.0)
 
 
-    # # # 20 single models
+    # # # # 20 single models
     evaluate_multiple_models(model_class, test_loader, device, n_models=20,
                              n_bins=15, mode="vanilla", data_type="normal")
     evaluate_multiple_models(model_class, shift_loader, device, n_models=20,
@@ -301,8 +300,8 @@ def main():
         ("results/calibration_evaluation/mc_dropout_normal_metrics.csv", "results/calibration_evaluation/sngp_normal_metrics.csv", "normal"),
         ("results/calibration_evaluation/mc_dropout_shift_metrics.csv",  "results/calibration_evaluation/sngp_shift_metrics.csv",  "shift"),
 
-        ("results/calibration_evaluation/bootstrapped_ensemble_vanilla_normal_metrics.csv", "results/calibration_evaluation/sngp_normal_metrics.csv", "normal"),
-        ("results/calibration_evaluation/bootstrapped_ensemble_vanilla_shift_metrics.csv", "results/calibration_evaluation/sngp_shift_metrics.csv", "shift"),
+        # ("results/calibration_evaluation/bootstrapped_ensemble_vanilla_normal_metrics.csv", "results/calibration_evaluation/sngp_normal_metrics.csv", "normal"),
+        # ("results/calibration_evaluation/bootstrapped_ensemble_vanilla_shift_metrics.csv", "results/calibration_evaluation/sngp_shift_metrics.csv", "shift"),
 
         ("results/calibration_evaluation/mc_dropout_normal_metrics.csv", "results/calibration_evaluation/sngp_dropout_normal_metrics.csv", "normal"),
         ("results/calibration_evaluation/mc_dropout_shift_metrics.csv", "results/calibration_evaluation/sngp_dropout_shift_metrics.csv", "shift"),
@@ -311,30 +310,8 @@ def main():
         ("results/calibration_evaluation/bootstrapped_ensemble_vanilla_shift_metrics.csv", "results/calibration_evaluation/bootstrapped_ensemble_sngp_shift_metrics.csv", "shift"),
     ]
 
-    time.sleep(2)
+    time.sleep(1)
     batch_ttests(pairs)
-    #
-    df = pd.read_csv("results/ttest_results.csv")
-
-    # keep only relevant columns
-    cols = ["label", "baseline", "proposed", "nll_pval", "brier_pval", "ece_pval"]
-    table = df[cols].copy()
-
-    # format to 4 decimals and bold if <0.05
-    def fmt_p(p):
-        if pd.isna(p): return "—"
-        p = float(p)
-        return f"**{p:.4f}**" if p < 0.05 else f"{p:.4f}"
-
-    for m in ["nll_pval", "brier_pval", "ece_pval"]:
-        table[m] = table[m].apply(fmt_p)
-
-    print(table.to_markdown(index=False))
-
-    saved_path = "results/calibration_evaluation/ttest_results_formatted.csv"
-    table.to_csv(saved_path, index=False)
-    print(f"[INFO] Formatted table saved to {saved_path}")
-
 
 if __name__ == "__main__":
     main()

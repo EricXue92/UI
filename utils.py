@@ -196,18 +196,6 @@ def plot_predictive_uncertainty(test_var_sngp, shift_var_sngp, OOD_var_sngp, Uq_
     plt.show()
     plt.close()
 
-def save_append_metric_results(results, result_file_path):
-    os.makedirs(os.path.dirname(result_file_path), exist_ok=True)
-    results = {key: (value.cpu().numpy() if isinstance(value, torch.Tensor) else value if isinstance(value, (list, pd.Series)) else [value])
-               for key, value in results.items() }
-    df = pd.DataFrame(results)
-
-    if not os.path.isfile(result_file_path):
-        df.to_csv(result_file_path, index=False, header=True)
-    else:
-        df.to_csv(result_file_path, mode='a', index=False, header=False)
-
-
 def ttest_from_csv(baseline_csv, proposed_csv, metrics=("nll","brier","ece") ):
     base = pd.read_csv(baseline_csv).iloc[:-1]
     prop = pd.read_csv(proposed_csv).iloc[:-1]
@@ -215,80 +203,34 @@ def ttest_from_csv(baseline_csv, proposed_csv, metrics=("nll","brier","ece") ):
     for col in metrics:
         xb = pd.to_numeric(base[col], errors="coerce").dropna()
         xp = pd.to_numeric(prop[col], errors="coerce").dropna()
-
         # Need at least 2 samples per group for a t-test
         if len(xb) < 2 or len(xp) < 2:
             res[f"{col}_pval"] = np.nan
             continue
-
-        t_stat, p_val = stats.ttest_ind(xp, xb, alternative="less", equal_var=False)
-        # t_stat, p_val = stats.ttest_rel(xp, xb, alternative="less")
-        res[f"{col}_pval"] = float(p_val)
+        # t_stat, p_val = stats.ttest_ind(xp, xb, alternative="less", equal_var=False)
+        _, p_val = stats.ttest_rel(xp, xb, alternative="less")
+        res[f"{col}_pval"] = round(float(p_val), 4)
     return res
 
 
-
-def batch_ttests(pairs, out_csv="results/ttest_results.csv", alpha=0.05):
-    """
-    pairs: list of (baseline_csv, proposed_csv, label)
-    Writes/append a summary CSV with p-values and boolean significance flags.
-    """
+def batch_ttests(pairs, out_csv="results/calibration_evaluation/ttest.csv"):
+    """Compute p-values for all pairs and save to CSV."""
     rows = []
     for baseline_csv, proposed_csv, label in pairs:
-        bpath, ppath = Path(baseline_csv), Path(proposed_csv)
-
-        # Skip missing files gracefully (and tell you which)
-        if not bpath.exists() or not ppath.exists():
-            rows.append({
-                "label": label,
-                "baseline": baseline_csv,
-                "proposed": proposed_csv,
-                "nll_pval": np.nan,
-                "brier_pval": np.nan,
-                "ece_pval": np.nan,
-                "nll_sig": False,
-                "brier_sig": False,
-                "ece_sig": False,
-                "any_sig": False,
-                "note": f"Missing: "
-                        f"{'baseline ' if not bpath.exists() else ''}"
-                        f"{'proposed' if not ppath.exists() else ''}".strip()
-            })
+        if not Path(baseline_csv).exists() or not Path(proposed_csv).exists():
+            rows.append({"label": label, "baseline": baseline_csv,
+                         "proposed": proposed_csv, "nll_pval": np.nan,
+                         "brier_pval": np.nan, "ece_pval": np.nan})
             continue
 
         res = ttest_from_csv(baseline_csv, proposed_csv)
-        # boolean flags at alpha
-        nll_p = res.get("nll_pval", np.nan)
-        brier_p = res.get("brier_pval", np.nan)
-        ece_p = res.get("ece_pval", np.nan)
-
-        nll_sig = (nll_p == nll_p) and (nll_p < alpha)
-        brier_sig = (brier_p == brier_p) and (brier_p < alpha)
-        ece_sig = (ece_p == ece_p) and (ece_p < alpha)
-
-        rows.append({
-            "label": label,
-            "baseline": baseline_csv,
-            "proposed": proposed_csv,
-            "nll_pval": nll_p,
-            "brier_pval": brier_p,
-            "ece_pval": ece_p,
-            "nll_sig": nll_sig,
-            "brier_sig": brier_sig,
-            "ece_sig": ece_sig,
-            "any_sig": bool(nll_sig or brier_sig or ece_sig),
-            "note": ""
-        })
-
+        rows.append({"label": label, "baseline": baseline_csv,
+                     "proposed": proposed_csv, **res})
     df = pd.DataFrame(rows)
-
-    # Ensure output directory exists
     out_path = Path(out_csv)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Append if file exists, else create with header; keep 4 decimals
-    df.to_csv(out_path, mode="w", header=True, index=False, float_format="%.4f")
-    print(f"[SAVED] Results written to {out_path.resolve()}")
+    df.to_csv(out_path, index=False)
+    print(f"[SAVED] p-values written to {out_path.resolve()}")
     return df
 
 
