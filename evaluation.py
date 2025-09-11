@@ -10,14 +10,6 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import roc_curve
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
-import torch.nn.functional as F
-import random
-import time
-import pandas as pd
-pd.set_option("display.precision", 4)
-
-from added_metrics import negative_log_likelihood, brier_score, expected_calibration_error
-from utils import save_append_metric_results, batch_ttests
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 seed = utils.set_seed(42)
@@ -28,7 +20,6 @@ train_loader = DataLoader(train_data, batch_size=512, shuffle=True, drop_last=Tr
 # defined the shift data level
 ROTATE_DEGS, ROLL_PIXELS = 2, 4
 test_loader, shift_loader, ood_loader = data_setup.get_all_test_dataloaders(batch_size=1024, rotate_degs=ROTATE_DEGS, roll_pixels=ROLL_PIXELS) # 4
-
 
 def load_model(model_path="checkpoints/normal_model_*.pth"):
     model = model_builder.Build_MNISTClassifier(10)
@@ -51,11 +42,11 @@ def load_ensemble(model_path="models/ensemble_model_*.pth"):
     return models
 
 # Load the pre-trained models
-# model = load_model().to(device)
-# ensemble_models = load_ensemble()
-# sngp_model = load_sngp_model().to(device)
-# sngp_model.classifier.update_covariance_matrix()
-# sngp_ensemble_models = [load_sngp_model(f"models/sngp_model_{i}.pth").to(device) for i in range(5) ]
+model = load_model().to(device)
+ensemble_models = load_ensemble()
+sngp_model = load_sngp_model().to(device)
+sngp_model.classifier.update_covariance_matrix()
+sngp_ensemble_models = [load_sngp_model(f"models/sngp_model_{i}.pth").to(device) for i in range(5) ]
 
 # Function to calculate the accuracy of a model on a given dataset
 def shift_acc(model, data_loader):
@@ -108,20 +99,6 @@ def get_all_hiddens(dataset=test_loader):
     results['dropout'] = utils.mc_dropout(model, dataset, return_hidden=True)['hiddens']
     results['deepensemble'] = train.get_deep_ensemble_results(dataset=dataset, return_hidden=True)["hiddens"]
     return results
-
-# # Only need to get the SNGP uncertainty, dropout and deep ensemble are already done
-# def get_sngp_uncertainty(model=sngp_model, dataset=test_loader):
-#     uncertainties = []
-#     kwargs = {'return_random_features': False, 'return_covariance': True,
-#               'update_precision_matrix': False, 'update_covariance_matrix': False}
-#     with torch.no_grad():
-#         for batch, (X, y) in enumerate(dataset):
-#             X = X.to(device)
-#             _, cov = model(X, return_hidden=False, **kwargs)
-#             uncertainty = torch.diag(cov)
-#             uncertainties.append(uncertainty)
-#     uncertainties = torch.cat(uncertainties, dim=0)
-#     return uncertainties
 
 # Only need to get the SNGP uncertainty, dropout and deep ensemble are already done
 def get_sngp_uncertainty(model, dataset=test_loader, return_correctness=False):
@@ -249,16 +226,6 @@ def uncertainty_thershold(model, data_loader):
     uncertainties = uncertainties.cpu().numpy()
     correctness =  correctness.cpu().numpy()
     s_fpr, s_tpr, s_thresh  = roc_curve(correctness, uncertainties)
-    max_j = max(zip(s_tpr, s_fpr), key=lambda x: x[0] - x[1])
-    slide_uq = s_thresh[list(zip(s_tpr, s_fpr)).index(max_j)]
-    print(f"Slide uncertainty: {slide_uq}, quantile of low uncertainty: {np.mean(uncertainties<=slide_uq)}")
-    return slide_uq
-
-def uncertainty_thershold(model, data_loader):
-    uncertainties, correctness = get_sngp_uncertainty(model, data_loader, True)
-    uncertainties = uncertainties.cpu().numpy()
-    correctness =  correctness.cpu().numpy()
-    s_fpr, s_tpr, s_thresh  = roc_curve(correctness, uncertainties)
     print(f"s_fpr: {len(s_fpr)}, s_tpr: {len(s_tpr)}, s_thresh: {len(s_thresh)}")
     J_index = s_tpr - s_fpr
     print(f"J_index:  {J_index}")
@@ -296,500 +263,25 @@ def plot_youden_j(uncertainties, correctness, J_index):
     plt.show()
 
 
-# For calculating metrics (nll, brier, and ece) for a single model (vanilla or sngp)
-def evaluate_metrics(model, dataloader, device, n_bins, mode="vanilla", data_type="normal"):
-    assert mode in {"vanilla", "mc_dropout", "sngp", "sngp_dropout"}
-
-    if mode in {"vanilla", "sngp"}:
-        model.eval()
-    elif mode in {"mc_dropout","sngp_dropout"}:
-        model.train()
-    else:
-        print(f"Invalid mode: {mode}. Choose 'vanilla' or 'mc_dropout'.")
-    logits_list, probs_list, labels_list = [], [], []
-    with torch.no_grad():
-        for X,y in dataloader:
-            X, y = X.to(device), y.to(device)
-            if mode in {"vanilla","sngp"}:
-                logits = model(X, return_hidden=False)
-                probs = torch.softmax(logits, dim=1)
-                logits_list.append(logits.cpu())
-                probs_list.append(probs.cpu())
-            elif mode == "mc_dropout":
-                probs_accum = None
-                for _ in range(5):
-                    logits_mc = model(X, return_hidden=False)
-                    if logits_mc.ndim == 1 or logits_mc.size(1) == 1:
-                        probs_mc = torch.sigmoid(logits_mc).view(-1, 1)  # (N,1)
-                    else:
-                        probs_mc = F.softmax(logits_mc, dim=1)  # (N,K)
-                    probs_accum = probs_mc if probs_accum is None else probs_accum + probs_mc
-                probs_mean = probs_accum / 5  # predictive p
-                probs_list.append(probs_mean.cpu())
-                if probs_mean.ndim == 1 or probs_mean.size(1) == 1:  # binary
-                    p_correct = probs_mean.view(-1).gather(0, y)
-                else:
-                    p_correct = probs_mean.gather(1, y.unsqueeze(1)).squeeze(1)
-                logits_list.append(torch.log(p_correct + 1e-15).unsqueeze(1).cpu())
-            elif mode == "sngp_dropout":
-                probs_accum = None
-                for _ in range(5):
-                    logits_mc = model(X, return_hidden=False)
-                    if logits_mc.ndim == 1 or logits_mc.size(1) == 1:
-                        probs_mc = torch.sigmoid(logits_mc).view(-1, 1)
-                    else:
-                        probs_mc = F.softmax(logits_mc, dim=1)
-                    probs_accum = probs_mc if probs_accum is None else probs_accum + probs_mc
-                probs_mean = probs_accum / 5
-                probs_list.append(probs_mean.cpu())
-                if probs_mean.ndim == 1 or probs_mean.size(1) == 1:
-                    p_correct = probs_mean.view(-1).gather(0, y)
-                else:
-                    p_correct = probs_mean.gather(1, y.unsqueeze(1)).squeeze(1)
-                logits_list.append(torch.log(p_correct + 1e-15).unsqueeze(1).cpu())
-            else:
-                print(f"Invalid mode: {mode}")
-            labels_list.append(y.cpu())
-    # For NLL we still need logits or p(correct). The most numerically
-    # stable way:  −log p̄_y  where p̄_y is the mean prob assigned to the true class.
-    logits = torch.cat(logits_list, dim=0)
-    probs = torch.cat(probs_list, dim=0)
-    labels = torch.cat(labels_list, dim=0)
-    # Negative log-likelihood
-    if mode in {"vanilla","sngp"}:
-        nll = negative_log_likelihood(logits, labels)
-    elif mode in {"mc_dropout", "sngp_dropout"}:
-        # already have log p̄_y stored in logits (see above)
-        nll = -logits.squeeze().mean().item()
-    else:
-        print(f"Invalid mode: {mode}")
-    # Metrics
-    brier = brier_score(probs, labels)
-    ece = expected_calibration_error(probs, labels, n_bins)
-    print(f"{mode} | {data_type} | NLL: {nll:.4f} | Brier: {brier:.4f} | ECE: {ece:.4f}")
-    return float(nll) , float(brier) , float(ece)
-
-    # results = {
-    #     "mode": mode,
-    #     "data_type": data_type,
-    #     "nll": round(nll, 4),
-    #     "brier": round(brier, 4),
-    #     "ece": round(ece, 4)
-    # }
-    # result_file_path = Path(f"results/{mode}_{data_type}_metrics.csv")
-    # save_append_metric_results(results, result_file_path)
-    # print(f"Results saved to {result_file_path}")
-    # return nll, brier, ece
-
-
-# simple model to compute 10 times and report mean ± std (finished)
-def evaluate_multiple_models(model_class, dataloader, device, n_models=10, n_bins=10,
-                             mode="vanilla", data_type="normal"):
-    nlls, briers, eces = [], [], []
-    for i in range(n_models):
-        if mode in {"vanilla", "mc_dropout"}:
-            ckpt_path = Path(f"checkpoints/normal_model_{i}.pth")
-        elif mode in {"sngp", "sngp_dropout"}:
-            ckpt_path = Path(f"checkpoints/sngp_model_{i}.pth")
-        else:
-            raise ValueError("Invalid mode. Choose 'vanilla' or 'sngp'.")
-        print(f"\n[INFO] Loading checkpoint: {ckpt_path}")
-
-        # load model
-        model = model_class().to(device)
-        state_dict = torch.load(ckpt_path, map_location=device)
-        model.load_state_dict(state_dict)
-        model.to(device)
-
-        nll, brier, ece = evaluate_metrics(model, dataloader, device,
-                                           n_bins=n_bins, mode=mode, data_type=data_type)
-        nlls.append(nll)
-        briers.append(brier)
-        eces.append(ece)
-
-    nlls = torch.round(torch.tensor(nlls, dtype=torch.float32), decimals=4)
-    briers = torch.round(torch.tensor(briers, dtype=torch.float32), decimals=4)
-    eces = torch.round(torch.tensor(eces, dtype=torch.float32), decimals=4)
-
-    nlls_mean, nlls_std = torch.mean(nlls).item(), nlls.std(unbiased=False).item()
-    briers_mean, briers_std = torch.mean(briers).item(), torch.std(briers, unbiased=False).item()
-    eces_mean, eces_std = torch.mean(eces).item(), torch.std(eces, unbiased=False).item()
-
-    df = pd.DataFrame({
-        "model_id": list(range(n_models)),
-        "nll": [f"{x:.4f}" for x in nlls.tolist()],
-        "brier": [f"{x:.4f}" for x in briers.tolist()],
-        "ece": [f"{x:.4f}" for x in eces.tolist()]
-    })
-
-    df.loc["mean±std"] = [
-        "mean±std",
-        f"{nlls_mean:.4f} ± {nlls_std:.4f}",
-        f"{briers_mean:.4f} ± {briers_std:.4f}",
-        f"{eces_mean:.4f} ± {eces_std:.4f}"
-    ]
-
-    result_file_path = Path(f"results/{mode}_{data_type}_metrics.csv")
-    if result_file_path.exists():
-        df.to_csv(result_file_path, mode="a", header=False, index=False)
-        print(f"[INFO] Appended results to {result_file_path}")
-    else:
-        df.to_csv(result_file_path, index=False)
-        print(f"[INFO] Created new results file at {result_file_path}")
-
-    # summary = {
-    #     "mode": mode,
-    #     "data_type": data_type,
-    #     "nll": f"{nlls_mean:.4f} ± {nlls_std:.4f}",
-    #     "brier": f"{briers_mean:.4f} ± {briers_std:.4f}",
-    #     "ece": f"{eces_mean:.4f} ± {eces_std:.4f}"
-    # }
-
-    return
-
-
-
-    # results = {
-    #     "mode": mode,
-    #     "data_type": data_type,
-    #     "nll": f"{nlls_mean:.4f} ± {nlls_std:.4f}",
-    #     "brier": f"{briers_mean:.4f} ± {briers_std:.4f}",
-    #     "ece": f"{eces_mean:.4f} ± {eces_std:.4f}"
-    # }
-    # result_file_path = Path(f"results/{mode}_{data_type}_metrics.csv")
-    # print(f"Results saved to {result_file_path}")
-    # save_append_metric_results(results, result_file_path)
-    # return
-
-def evaluate_bootstrapped_ensemble(model_class, dataloader, device,
-                                   n_ensembles=5, mode="vanilla",
-                                   ensemble_size=10, pool_size=20,
-                                   n_bins=10, data_type="normal"):
-    if mode == "vanilla":
-        model_paths = [Path(f"checkpoints/normal_model_{i}.pth") for i in range(pool_size)]
-    elif mode == "sngp":
-        model_paths = [Path(f"checkpoints/sngp_model_{i}.pth") for i in range(pool_size)]
-    else:
-        raise ValueError("Invalid mode. Choose 'vanilla' or 'sngp'.")
-
-    nlls, briers, eces = [], [], []
-    records = []
-
-    for i in range(n_ensembles):
-        print(f"\n[INFO] Evaluating bootstrapped ensemble {i+1}/{n_ensembles}")
-        chosen_paths = random.choices(model_paths, k=ensemble_size)
-        print(f"Selected models: {[p.name for p in chosen_paths]}")
-
-        # load models
-        ensemble_models = []
-        for ckpt_path in chosen_paths:
-            model = model_class().to(device)
-            state_dict = torch.load(ckpt_path, map_location=device)
-            model.load_state_dict(state_dict)
-            model.eval()
-            ensemble_models.append(model)
-
-        # evaluate this ensemble
-        nll, brier, ece = evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins)
-        nlls.append(nll); briers.append(brier); eces.append(ece)
-
-        records.append({
-            "ensemble_id": i,
-            "mode": "bootstrapped_ensemble",
-            "data_type": data_type,
-            "nll": nll,
-            "brier": brier,
-            "ece": ece
-        })
-
-    # summary
-    nll_mean, nll_std = torch.tensor(nlls).mean().item(), torch.tensor(nlls).std(unbiased=False).item()
-    brier_mean, brier_std = torch.tensor(briers).mean().item(), torch.tensor(briers).std(unbiased=False).item()
-    ece_mean, ece_std = torch.tensor(eces).mean().item(), torch.tensor(eces).std(unbiased=False).item()
-
-    summary = {
-        "ensemble_id": "mean±std",
-        "mode": "bootstrapped_ensemble",
-        "data_type": data_type,
-        "nll": f"{nll_mean:.4f} ± {nll_std:.4f}",
-        "brier": f"{brier_mean:.4f} ± {brier_std:.4f}",
-        "ece": f"{ece_mean:.4f} ± {ece_std:.4f}"
-    }
-
-    # Save all results once
-    result_file_path = Path(f"results/bootstrapped_ensemble_{mode}_{data_type}_metrics.csv")
-    df = pd.DataFrame(records + [summary])
-    df.to_csv(result_file_path, index=False)
-    print(f"[INFO] Results saved to {result_file_path}")
-    return summary
-
-
-# def evaluate_bootstrapped_ensemble(model_class, dataloader, device, n_ensembles=5, mode="vanilla",
-#                                    ensemble_size=10, pool_size=20, n_bins=10, data_type="normal" ):
-#     nlls, briers, eces = [], [], []
-#     individual_results = []
-#     if mode == "vanilla" :
-#         model_paths = [Path(f"checkpoints/normal_model_{i}.pth") for i in range(pool_size)]
-#     elif mode == "sngp":
-#         model_paths = [Path(f"checkpoints/sngp_model_{i}.pth") for i in range(pool_size)]
-#     else:
-#         raise ValueError("Invalid mode. Choose 'vanilla' or 'sngp'.")
-#
-#     for i in range(n_ensembles):
-#         print(f"\n[INFO] Evaluating bootstrapped ensemble {i + 1}/{n_ensembles}")
-#         chosen_paths = random.choices(model_paths, k=ensemble_size)
-#         print(f"Selected models: {[p.name for p in chosen_paths]}")
-#
-#         ensemble_models = []
-#         for ckpt_path in chosen_paths:
-#             model = model_class().to(device)
-#             state_dict = torch.load(ckpt_path, map_location=device)
-#             model.load_state_dict(state_dict)
-#             model.to(device)
-#             model.eval()
-#             ensemble_models.append(model)
-#
-#         # evaluate this ensemble
-#         nll, brier, ece = evaluate_ensemble_helper(ensemble_models, dataloader, device=device,
-#                                                    n_bins=n_bins, mode=mode, data_type=data_type)
-#         nlls.append(nll)
-#         briers.append(brier)
-#         eces.append(ece)
-#
-#         # Store individual result
-#         individual_result = {
-#             "mode": "bootstrapped_ensemble",
-#             "data_type": data_type,
-#             "nll": f"{nll:.4f}",
-#             "brier": f"{brier:.4f}",
-#             "ece": f"{ece:.4f}",
-#         }
-#         individual_results.append(individual_result)
-#
-#     nll_list = torch.tensor(nlls, dtype=torch.float32)
-#     brier_list = torch.tensor(briers, dtype=torch.float32)
-#     ece_list = torch.tensor(eces, dtype=torch.float32)
-#
-#     # mean and std
-#     nll_mean, nll_std = nll_list.mean().item(), nll_list.std(unbiased=False).item()
-#     brier_mean, brier_std = brier_list.mean().item(), brier_list.std(unbiased=False).item()
-#     ece_mean, ece_std = ece_list.mean().item(), ece_list.std(unbiased=False).item()
-#     summary_results = {
-#         "mode": "bootstrapped_ensemble",
-#         "data_type": data_type,
-#         "nll": f"{nll_mean:.4f} ± {nll_std:.4f}",
-#         "brier": f"{brier_mean:.4f} ± {brier_std:.4f}",
-#         "ece": f"{ece_mean:.4f} ± {ece_std:.4f}"
-#     }
-#     result_file_path = Path(f"results/bootstrapped_ensemble_{mode}_{data_type}_metrics.csv")
-#     print(f"Results saved to {result_file_path}")
-#
-#     # Save each individual ensemble result
-#     for result in individual_results:
-#         save_append_metric_results(result, result_file_path)
-#
-#         # Save summary result
-#     save_append_metric_results(summary_results, result_file_path)
-#
-#     return summary_results
-
-
-def evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins=15):
-    all_probs, all_labels = [], []
-    nll_sum, n_samples = 0.0, 0
-    n = len(ensemble_models)
-    with torch.no_grad():
-        for X, y in dataloader:
-            X, y = X.to(device), y.to(device)
-            probs_accum = 0.0
-
-            for model in ensemble_models:
-                logits = model(X, return_hidden=False)
-                if logits.ndim == 1 or logits.size(1) == 1:  # binary case
-                    probs = torch.sigmoid(logits).view(-1, 1)
-                    probs = torch.cat([1 - probs, probs], dim=1)
-                else:
-                    probs = F.softmax(logits, dim=1)
-                probs_accum += probs
-
-            probs_mean = probs_accum / n
-            all_probs.append(probs_mean.cpu())
-            all_labels.append(y.cpu())
-            # batch NLL
-            p_true = probs_mean.gather(1, y.unsqueeze(1)).squeeze(1)
-            nll_sum += -torch.log(p_true + 1e-15).sum().item()
-            n_samples += y.size(0)
-    # Concatenate results
-    probs = torch.cat(all_probs, dim=0)
-    labels = torch.cat(all_labels, dim=0)
-    # Metrics
-    nll = nll_sum / n_samples
-    brier = brier_score(probs, labels)
-    ece = expected_calibration_error(probs, labels, n_bins)
-    return round(nll, 4), round(brier, 4), round(ece, 4)
-
-
-# def evaluate_ensemble_helper(ensemble_models, dataloader, device, n_bins=15,
-#                              mode="vanilla", data_type="normal"):
-#     all_probs, all_labels, nll_sum = [], [], 0.0
-#     n_samples = 0
-#     n = len(ensemble_models)
-#     per_model_probs = [[] for _ in range(n)]
-#     print(f"Evaluating {n} ensemble models.")
-#     with torch.no_grad():
-#         for X, y in dataloader:
-#             X, y = X.to(device), y.to(device)
-#             probs_accum = None
-#             for j, model in enumerate(ensemble_models):
-#                 logits = model(X, return_hidden=False)
-#                 if logits.ndim == 1 or logits.size(1) == 1: # binary
-#                     probs = torch.sigmoid(logits).view(-1,1)
-#                     probs_j = torch.stack([1.0 - probs, probs], dim=1)
-#                 else:
-#                     probs = F.softmax(logits, dim=1)
-#                     probs_j = F.softmax(logits, dim=1)
-#                     # Save per-model probs (on CPU)
-#                 per_model_probs[j].append(probs_j.detach().cpu())
-#                 probs_accum = probs if probs_accum is None else probs_accum + probs
-#             probs_mean = probs_accum / n
-#             all_probs.append(probs_mean.cpu())
-#             all_labels.append(y.cpu())
-#
-#             # calculate nll for the batch
-#             if probs_mean.size(1) == 1:
-#                 p_true = torch.where(y==1, probs_mean.squeeze(), 1 - probs_mean.squeeze())
-#             else:
-#                 p_true = probs_mean.gather(1, y.unsqueeze(1)).squeeze(1)
-#
-#             nll_sum += -torch.log(p_true + 1e-15).sum().item()
-#             n_samples += y.size(0)
-#
-#     probs = torch.cat(all_probs, dim=0)
-#     labels = torch.cat(all_labels, dim=0)
-#     per_model_probs = [torch.cat(lst, dim=0) for lst in per_model_probs]
-#
-#     nll = nll_sum / n_samples
-#     brier = brier_score(probs, labels)
-#
-#     member_eces = [expected_calibration_error(pm, labels, n_bins) for pm in per_model_probs]
-#     ece_members_avg = sum(member_eces) / len(member_eces)
-#     ece_ens_mean = expected_calibration_error(probs, labels, n_bins)
-#
-#     results = {
-#         "mode": mode,
-#         "data_type": data_type,
-#         "nll": round(nll, 4),
-#         "brier": round(brier, 4),
-#         "ece": round(ece_members_avg, 4) #ece_members_avg
-#     }
-#     result_file_path = Path(f"results/{mode}_{data_type}_metrics.csv")
-#     save_append_metric_results(results, result_file_path)
-#     print(f"Ensemble ECE: {ece_ens_mean:.4f} | Members' avg ECE: {ece_members_avg:.4f}")
-#     return round(nll, 4), round(brier, 4), round(ece_ens_mean, 4) #
-
-
-
 def main():
 
-    # get_mc_results()
-    # get_all_shift_acc()
-    # get_all_corrs()
-    # slide_uq, uncertainties, correctness, J_index  = uncertainty_thershold(sngp_model, test_loader)
-    # plot_youden_j(uncertainties, correctness, J_index)
-    # # sngp_uq = []
+    get_mc_results()
+    get_all_shift_acc()
+    get_all_corrs()
+    slide_uq, uncertainties, correctness, J_index  = uncertainty_thershold(sngp_model, test_loader)
+    plot_youden_j(uncertainties, correctness, J_index)
+    sngp_uq = []
 
     # model, sngp_model, ensemble_models
-    # data_loaders = [test_loader, shift_loxader]
-    # "vanilla"
+    data_loaders = [test_loader, shift_loader]
 
-
-    model_class = lambda: model_builder.Build_MNISTClassifier(10)
-    sngp_class = lambda: model_builder.Build_SNGP_MNISTClassifier(num_classes=10, coeff=1.0)
-
-
-    # # # 20 single models
-    evaluate_multiple_models(model_class, test_loader, device, n_models=20,
-                             n_bins=15, mode="vanilla", data_type="normal")
-    evaluate_multiple_models(model_class, shift_loader, device, n_models=20,
-                             n_bins=15,mode="vanilla", data_type="shift")
-
-    # # 20 sngp single models
-    evaluate_multiple_models(sngp_class, test_loader, device, n_models=20,
-                             n_bins=15, mode="sngp", data_type="normal")
-    evaluate_multiple_models(sngp_class, shift_loader, device, n_models=20,
-                             n_bins=15,mode="sngp", data_type="shift")
-    #
-    # # # 20 mc dropout single models
-    evaluate_multiple_models(model_class, test_loader, device, n_models=20,
-                             n_bins=15, mode="mc_dropout", data_type="normal")
-    evaluate_multiple_models(model_class, shift_loader, device, n_models=20,
-                             n_bins=15, mode="mc_dropout", data_type="shift")
-
-    # 20 sngp + dropout single models
-    evaluate_multiple_models(sngp_class, test_loader, device, n_models=20,
-                             n_bins=15,mode="sngp_dropout", data_type="normal")
-    evaluate_multiple_models(sngp_class, shift_loader, device, n_models=20,
-                             n_bins=15,mode="sngp_dropout", data_type="shift")
-
-
-    # 5 bootstrapped ensemble for vinillia
-    evaluate_bootstrapped_ensemble(model_class, test_loader, device, n_ensembles=5, mode="vanilla",
-                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
-    evaluate_bootstrapped_ensemble(model_class, shift_loader, device, n_ensembles=5, mode="vanilla",
-                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
-
-    # ## 5 bootstrapped ensemble for sngp
-    evaluate_bootstrapped_ensemble(sngp_class, test_loader, device, n_ensembles=5, mode="sngp",
-                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="normal")
-    evaluate_bootstrapped_ensemble(sngp_class, shift_loader, device, n_ensembles=5, mode="sngp",
-                                   ensemble_size=10, pool_size=20, n_bins=15, data_type="shift")
-
-
-    # pairs = [
-    #     ("results/vanilla_normal_metrics.csv", "results/sngp_normal_metrics.csv", "normal"),
-    #     ("results/vanilla_shift_metrics.csv",  "results/sngp_shift_metrics.csv",  "shift"),
-    #
-    #     ("results/mc_dropout_normal_metrics.csv", "results/sngp_normal_metrics.csv", "normal"),
-    #     ("results/mc_dropout_shift_metrics.csv",  "results/sngp_shift_metrics.csv",  "shift"),
-    #
-    #
-    #     ("results/bootstrapped_ensemble_vanilla_normal_metrics.csv",
-    #      "results/bootstrapped_ensemble_sngp_normal_metrics.csv", "normal"),
-    #
-    #     ("results/bootstrapped_ensemble_vanilla_shift_metrics.csv",
-    #      "results/bootstrapped_ensemble_sngp_shift_metrics.csv", "shift"),
-    # ]
-    #
-    #
-    # # time.sleep(5)
-    # batch_ttests(pairs)
-    # #
-    # df = pd.read_csv("results/ttest_results.csv")
-    #
-    #
-    # # keep only relevant columns
-    # cols = ["label", "baseline", "proposed", "nll_pval", "brier_pval", "ece_pval"]
-    # table = df[cols].copy()
-    #
-    # # format to 4 decimals and bold if <0.05
-    # def fmt_p(p):
-    #     if pd.isna(p): return "—"
-    #     p = float(p)
-    #     return f"**{p:.4f}**" if p < 0.05 else f"{p:.4f}"
-    #
-    # for m in ["nll_pval", "brier_pval", "ece_pval"]:
-    #     table[m] = table[m].apply(fmt_p)
-    #
-    # print(table.to_markdown(index=False))
-
-
-    # # for dataloader in data_loaders:
-    # #     uq = get_sngp_uncertainty(model=sngp_model, dataset=dataloader)
-    # #     sngp_uq.append(uq.cpu().numpy())
-    # # print(np.mean(sngp_uq[0]))
-    # # print(np.mean(sngp_uq[1]))
-    # # print(np.mean(sngp_uq[2]))
-    # # utils.plot_predictive_uncertainty(sngp_uq[0], sngp_uq[1], sngp_uq[2], Uq_threshold, 'UQ_Threshold.pdf')
+    for dataloader in data_loaders:
+        uq = get_sngp_uncertainty(model=sngp_model, dataset=dataloader)
+        sngp_uq.append(uq.cpu().numpy())
+    print(np.mean(sngp_uq[0]))
+    print(np.mean(sngp_uq[1]))
+    print(np.mean(sngp_uq[2]))
+    utils.plot_predictive_uncertainty(sngp_uq[0], sngp_uq[1], sngp_uq[2], slide_uq[J_index], 'UQ_Threshold.pdf')
 
 if __name__ == "__main__":
     main()

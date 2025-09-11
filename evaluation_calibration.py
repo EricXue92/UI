@@ -301,11 +301,13 @@ def main():
         ("results/calibration_evaluation/mc_dropout_normal_metrics.csv", "results/calibration_evaluation/sngp_normal_metrics.csv", "normal"),
         ("results/calibration_evaluation/mc_dropout_shift_metrics.csv",  "results/calibration_evaluation/sngp_shift_metrics.csv",  "shift"),
 
+        ("results/calibration_evaluation/bootstrapped_ensemble_vanilla_normal_metrics.csv", "results/calibration_evaluation/sngp_normal_metrics.csv", "normal"),
+        ("results/calibration_evaluation/bootstrapped_ensemble_vanilla_shift_metrics.csv", "results/calibration_evaluation/sngp_shift_metrics.csv", "shift"),
+
         ("results/calibration_evaluation/mc_dropout_normal_metrics.csv", "results/calibration_evaluation/sngp_dropout_normal_metrics.csv", "normal"),
         ("results/calibration_evaluation/mc_dropout_shift_metrics.csv", "results/calibration_evaluation/sngp_dropout_shift_metrics.csv", "shift"),
 
         ("results/calibration_evaluation/bootstrapped_ensemble_vanilla_normal_metrics.csv","results/calibration_evaluation/bootstrapped_ensemble_sngp_normal_metrics.csv", "normal"),
-
         ("results/calibration_evaluation/bootstrapped_ensemble_vanilla_shift_metrics.csv", "results/calibration_evaluation/bootstrapped_ensemble_sngp_shift_metrics.csv", "shift"),
     ]
 
@@ -313,7 +315,6 @@ def main():
     batch_ttests(pairs)
     #
     df = pd.read_csv("results/ttest_results.csv")
-
 
     # keep only relevant columns
     cols = ["label", "baseline", "proposed", "nll_pval", "brier_pval", "ece_pval"]
@@ -329,6 +330,10 @@ def main():
         table[m] = table[m].apply(fmt_p)
 
     print(table.to_markdown(index=False))
+
+    saved_path = "results/calibration_evaluation/ttest_results_formatted.csv"
+    table.to_csv(saved_path, index=False)
+    print(f"[INFO] Formatted table saved to {saved_path}")
 
 
 if __name__ == "__main__":
