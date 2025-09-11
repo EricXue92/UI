@@ -8,6 +8,7 @@ import seaborn as sns
 import pandas as pd
 from scipy import stats
 
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def set_seed(seed):
@@ -220,8 +221,8 @@ def ttest_from_csv(baseline_csv, proposed_csv, metrics=("nll","brier","ece") ):
             res[f"{col}_pval"] = np.nan
             continue
 
-        # t_stat, p_val = stats.ttest_ind(xp, xb, alternative="less", equal_var=False)
-        t_stat, p_val = stats.ttest_rel(xp, xb, alternative="less", equal_var=False)
+        t_stat, p_val = stats.ttest_ind(xp, xb, alternative="less", equal_var=False)
+        # t_stat, p_val = stats.ttest_rel(xp, xb, alternative="less")
         res[f"{col}_pval"] = float(p_val)
     return res
 
@@ -286,11 +287,7 @@ def batch_ttests(pairs, out_csv="results/ttest_results.csv", alpha=0.05):
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Append if file exists, else create with header; keep 4 decimals
-    if out_path.exists():
-        df.to_csv(out_path, mode="a", header=False, index=False, float_format="%.4f")
-    else:
-        df.to_csv(out_path, mode="w", header=True, index=False, float_format="%.4f")
-
+    df.to_csv(out_path, mode="w", header=True, index=False, float_format="%.4f")
     print(f"[SAVED] Results written to {out_path.resolve()}")
     return df
 
