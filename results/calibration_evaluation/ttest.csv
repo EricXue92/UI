@@ -1,0 +1,9 @@
+label,baseline,proposed,nll_pval,brier_pval,ece_pval
+normal,results/calibration_evaluation/vanilla_normal_metrics.csv,results/calibration_evaluation/sngp_normal_metrics.csv,0.0001,0.0001,0.0
+shift,results/calibration_evaluation/vanilla_shift_metrics.csv,results/calibration_evaluation/sngp_shift_metrics.csv,0.0,0.0,0.0
+normal,results/calibration_evaluation/mc_dropout_normal_metrics.csv,results/calibration_evaluation/sngp_normal_metrics.csv,0.0036,0.0001,0.0289
+shift,results/calibration_evaluation/mc_dropout_shift_metrics.csv,results/calibration_evaluation/sngp_shift_metrics.csv,0.0,0.0,0.0
+normal,results/calibration_evaluation/mc_dropout_normal_metrics.csv,results/calibration_evaluation/sngp_dropout_normal_metrics.csv,0.1257,0.0007,1.0
+shift,results/calibration_evaluation/mc_dropout_shift_metrics.csv,results/calibration_evaluation/sngp_dropout_shift_metrics.csv,0.0,0.0,0.0
+normal,results/calibration_evaluation/bootstrapped_ensemble_vanilla_normal_metrics.csv,results/calibration_evaluation/bootstrapped_ensemble_sngp_normal_metrics.csv,0.618,0.0071,0.9991
+shift,results/calibration_evaluation/bootstrapped_ensemble_vanilla_shift_metrics.csv,results/calibration_evaluation/bootstrapped_ensemble_sngp_shift_metrics.csv,0.0,0.0001,0.0001

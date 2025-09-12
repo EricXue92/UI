@@ -1,0 +1,7 @@
+ensemble_id,mode,data_type,nll,brier,ece
+0,bootstrapped_ensemble,shift,1.2798,0.4696,0.1056
+1,bootstrapped_ensemble,shift,1.339,0.4821,0.1034
+2,bootstrapped_ensemble,shift,1.4197,0.4965,0.1173
+3,bootstrapped_ensemble,shift,1.4026,0.4997,0.1128
+4,bootstrapped_ensemble,shift,1.3579,0.4913,0.1094
+mean±std,bootstrapped_ensemble,shift,1.3598 ± 0.0495,0.4878 ± 0.0109,0.1097 ± 0.0050
