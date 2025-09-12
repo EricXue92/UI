@@ -1,3 +1,0 @@
-mode,data_type,nll,brier,ece
-ensemble,normal,0.0171,0.0091,0.0032
-ensemble,shift,1.0823,0.4264,0.0778
