@@ -19,12 +19,12 @@ The trained model will be saved in the /models directory.
 
 If you want to train SNGP, simply add the flag (and adjust the epochs):
 ```setup
-python train.py --sngp --epochs 20
+python train.py --sngp --epochs 15
 ```
 
-If you want to train deep ensemble, simply add the flag (and adjust the  epochs):
+If you want to train deep ensembles, simply add the flag (and adjust the  epochs):
 ```setup
-python train.py --ensemble --epochs 10
+python train.py --ensemble --epochs 15
 ```
 
 After training, you can run evaluation.py to get all other results.
