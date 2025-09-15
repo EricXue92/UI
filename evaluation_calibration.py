@@ -23,13 +23,13 @@ test_loader, shift_loader, ood_loader = data_setup.get_all_test_dataloaders(batc
 # For calculating metrics (nll, brier, and ece) for a single model (vanilla or sngp)
 def evaluate_metrics(model, dataloader, device, n_bins, mode="vanilla", data_type="normal"):
     assert mode in {"vanilla", "mc_dropout", "sngp", "sngp_dropout"}
-
     if mode in {"vanilla", "sngp"}:
         model.eval()
     elif mode in {"mc_dropout","sngp_dropout"}:
         model.train()
     else:
         print(f"Invalid mode: {mode}. Choose 'vanilla' or 'mc_dropout'.")
+
     logits_list, probs_list, labels_list = [], [], []
     with torch.no_grad():
         for X,y in dataloader:
@@ -299,9 +299,6 @@ def main():
 
         ("results/calibration_evaluation/mc_dropout_normal_metrics.csv", "results/calibration_evaluation/sngp_normal_metrics.csv", "normal"),
         ("results/calibration_evaluation/mc_dropout_shift_metrics.csv",  "results/calibration_evaluation/sngp_shift_metrics.csv",  "shift"),
-
-        # ("results/calibration_evaluation/bootstrapped_ensemble_vanilla_normal_metrics.csv", "results/calibration_evaluation/sngp_normal_metrics.csv", "normal"),
-        # ("results/calibration_evaluation/bootstrapped_ensemble_vanilla_shift_metrics.csv", "results/calibration_evaluation/sngp_shift_metrics.csv", "shift"),
 
         ("results/calibration_evaluation/mc_dropout_normal_metrics.csv", "results/calibration_evaluation/sngp_dropout_normal_metrics.csv", "normal"),
         ("results/calibration_evaluation/mc_dropout_shift_metrics.csv", "results/calibration_evaluation/sngp_dropout_shift_metrics.csv", "shift"),
